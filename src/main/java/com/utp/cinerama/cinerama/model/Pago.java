@@ -29,6 +29,9 @@ public class Pago {
     @Column(nullable = false)
     private String tipoComprobante; // Boleta, Factura
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private EstadoPago estado;
 
     // Enum para el estado del pago
     public enum EstadoPago {

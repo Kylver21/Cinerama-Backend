@@ -32,8 +32,9 @@ public class Boleto {
     @Column(nullable = false)
     private Double precio;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String estado; // Reservado, Pagado, Cancelado, Usado
+    private EstadoBoleto estado;
 
     @Column(nullable = false)
     private LocalDateTime fechaCompra;
