@@ -1,6 +1,21 @@
 # 🎬 Cinerama - Sistema de Gestión de Cine
 
-Un sistema completo de gestión para cines desarrollado con **Spring Boot** y **MySQL**. Cinerama permite administrar clientes, películas, funciones, boletos, productos de concesión y pagos de manera eficiente.
+Un sistema completo de gestión para cines desarrollado con **Spring Boot 3.5.5** y **MySQL**. Cinerama permite administrar clientes, películas, funciones, boletos, productos de concesión y pagos de manera eficiente.
+
+## 🎯 **NUEVA FUNCIONALIDAD: Integración con TMDb API**
+
+Cinerama ahora se integra con **The Movie Database (TMDb)** para sincronizar automáticamente información de películas en cartelera, incluyendo:
+- 🎬 Títulos y descripciones en español
+- 🖼️ Pósters y imágenes de alta calidad
+- ⭐ Valoraciones de usuarios
+- 📅 Fechas de estreno
+- 🎭 Géneros y clasificaciones
+
+📚 **Documentación de Integración TMDb:**
+- 📘 [Guía Completa de Integración](TMDB_INTEGRATION.md)
+- 🚀 [Inicio Rápido](INICIO_RAPIDO.md)
+- 🔑 [Configurar API Key](CONFIGURAR_API_KEY.md)
+- 📊 [Resumen de Implementación](RESUMEN_IMPLEMENTACION.md)
 
 ## 📋 Tabla de Contenidos
 
@@ -169,12 +184,24 @@ DELETE /api/clientes/{id}      # Eliminar cliente
 
 ### Películas
 ```http
+# CRUD Básico
 GET    /api/peliculas                    # Obtener todas las películas
 GET    /api/peliculas/{id}               # Obtener película por ID
 POST   /api/peliculas                    # Crear nueva película
 PUT    /api/peliculas/{id}               # Actualizar película
 DELETE /api/peliculas/{id}               # Eliminar película
+
+# Búsquedas
 GET    /api/peliculas/genero/{genero}    # Buscar por género
+GET    /api/peliculas/titulo/{titulo}    # Buscar por título
+GET    /api/peliculas/activas            # Películas activas en cartelera
+GET    /api/peliculas/populares          # Ordenadas por popularidad
+GET    /api/peliculas/mejor-valoradas    # Mejor valoradas
+GET    /api/peliculas/tmdb/{tmdbId}      # Por ID de TMDb
+
+# Integración TMDb (NUEVO) ✨
+POST   /api/peliculas/sync               # Sincronizar con TMDb API
+GET    /api/peliculas/test-connection    # Probar conexión con TMDb
 ```
 
 ### Salas
@@ -349,17 +376,38 @@ Si tienes preguntas o sugerencias sobre el proyecto, no dudes en contactarnos:
 
 ---
 
-## 🔄 Próximas Funcionalidades
+## 🔄 Roadmap
 
+### ✅ Completado
+- [x] **Integración con TMDb API** - Sincronización automática de películas
+- [x] Sistema CRUD completo para todas las entidades
+- [x] Arquitectura en capas con Spring Boot
+- [x] Gestión de clientes, boletos y ventas
+- [x] Sistema de pagos
+
+### 🚧 En Desarrollo
 - [ ] Autenticación y autorización con JWT
 - [ ] Dashboard de administración
 - [ ] Reportes avanzados y analytics
+
+### 📋 Próximas Funcionalidades
+- [ ] Sincronización automática diaria con TMDb
 - [ ] Integración con sistemas de pago externos
 - [ ] Notificaciones por email/SMS
 - [ ] API para aplicaciones móviles
 - [ ] Sistema de reservas online
 - [ ] Integración con sistemas de cine (proyectores, etc.)
+- [ ] Sistema de recomendaciones basado en TMDb
+
+## 📚 Documentación Adicional
+
+- 📘 [Integración TMDb - Guía Completa](TMDB_INTEGRATION.md)
+- 🚀 [Inicio Rápido - TMDb](INICIO_RAPIDO.md)
+- 🔑 [Configurar API Key de TMDb](CONFIGURAR_API_KEY.md)
+- 📊 [Resumen de Implementación TMDb](RESUMEN_IMPLEMENTACION.md)
+- 📮 [Colección de Postman](Cinerama_Postman_Collection.json)
 
 ---
 
-*Última actualización: Septiembre 2025*
+*Última actualización: Octubre 2025*
+*Versión: 2.0.0 - Con Integración TMDb* ✨

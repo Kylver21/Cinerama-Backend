@@ -1,5 +1,6 @@
 package com.utp.cinerama.cinerama.service;
 
+import com.utp.cinerama.cinerama.dto.SyncResponseDTO;
 import com.utp.cinerama.cinerama.model.Pelicula;
 
 import java.util.List;
@@ -14,4 +15,11 @@ public interface PeliculaService {
     List<Pelicula> buscarPorGenero(String genero);
     List<Pelicula> buscarPorTitulo(String titulo);
     List<Pelicula> buscarPorClasificacion(String clasificacion);
+    
+    // Nuevos métodos para integración con TMDb
+    SyncResponseDTO sincronizarPeliculasDesdeAPI(Integer paginas);
+    List<Pelicula> obtenerPeliculasActivas();
+    List<Pelicula> obtenerPeliculasPorPopularidad();
+    List<Pelicula> obtenerPeliculasPorVoto();
+    Optional<Pelicula> obtenerPorTmdbId(Long tmdbId);
 }
