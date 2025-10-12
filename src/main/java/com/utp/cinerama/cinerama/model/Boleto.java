@@ -26,8 +26,10 @@ public class Boleto {
     @JoinColumn(name = "funcion_id", nullable = false)
     private Funcion funcion;
 
-    @Column(nullable = false)
-    private String asiento;
+    // ⭐ Nuevo: Relación con Asiento
+    @OneToOne
+    @JoinColumn(name = "asiento_id", nullable = false)
+    private Asiento asiento;
 
     @Column(nullable = false)
     private Double precio;

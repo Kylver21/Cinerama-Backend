@@ -1,0 +1,269 @@
+package com.utp.cinerama.cinerama.service.impl;
+
+import com.utp.cinerama.cinerama.dto.LoginDTO;
+import com.utp.cinerama.cinerama.dto.LoginResponseDTO;
+import com.utp.cinerama.cinerama.dto.RegistroDTO;
+import com.utp.cinerama.cinerama.exception.CredencialesInvalidasException;
+import com.utp.cinerama.cinerama.exception.RecursoNoEncontradoException;
+import com.utp.cinerama.cinerama.exception.UsuarioYaExisteException;
+import com.utp.cinerama.cinerama.model.Cliente;
+import com.utp.cinerama.cinerama.model.Rol;
+import com.utp.cinerama.cinerama.model.Usuario;
+import com.utp.cinerama.cinerama.repository.ClienteRepository;
+import com.utp.cinerama.cinerama.repository.RolRepository;
+import com.utp.cinerama.cinerama.repository.UsuarioRepository;
+import com.utp.cinerama.cinerama.security.JwtTokenProvider;
+import com.utp.cinerama.cinerama.service.UsuarioService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class UsuarioServiceImpl implements UsuarioService {
+
+    private final UsuarioRepository usuarioRepository;
+    private final RolRepository rolRepository;
+    private final ClienteRepository clienteRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+    private final JwtTokenProvider jwtTokenProvider;
+
+    @Override
+    @Transactional
+    public Usuario registrar(RegistroDTO registroDTO) {
+        log.info("📝 Registrando nuevo usuario: {}", registroDTO.getUsername());
+
+        // 1. Validar que el username no exista
+        if (usuarioRepository.existsByUsername(registroDTO.getUsername())) {
+            throw new UsuarioYaExisteException("El username '" + registroDTO.getUsername() + "' ya está en uso");
+        }
+
+        // 2. Validar que el email no exista
+        if (usuarioRepository.existsByEmail(registroDTO.getEmail())) {
+            throw new UsuarioYaExisteException("El email '" + registroDTO.getEmail() + "' ya está registrado");
+        }
+
+        // 3. Crear usuario
+        Usuario usuario = Usuario.builder()
+                .username(registroDTO.getUsername())
+                .email(registroDTO.getEmail())
+                .password(passwordEncoder.encode(registroDTO.getPassword()))
+                .activo(true)
+                .cuentaNoExpirada(true)
+                .cuentaNoBloqueada(true)
+                .credencialesNoExpiradas(true)
+                .build();
+
+        // 4. Asignar rol CLIENTE por defecto
+        Rol rolCliente = rolRepository.findByNombre("ROLE_CLIENTE")
+                .orElseThrow(() -> new RecursoNoEncontradoException("Rol ROLE_CLIENTE no encontrado"));
+        
+        usuario.agregarRol(rolCliente);
+
+        // 5. Guardar usuario
+        usuario = usuarioRepository.save(usuario);
+        log.info("✅ Usuario creado con ID: {}", usuario.getId());
+
+        // 6. Crear cliente asociado
+        Cliente cliente = Cliente.builder()
+                .usuario(usuario)
+                .nombre(registroDTO.getNombre())
+                .apellido(registroDTO.getApellido())
+                .email(registroDTO.getEmail())
+                .telefono(registroDTO.getTelefono())
+                .numeroDocumento(registroDTO.getNumeroDocumento())
+                .tipoDocumento(Cliente.TipoDocumento.valueOf(registroDTO.getTipoDocumento()))
+                .puntosAcumulados(0)
+                .nivelFidelizacion("BRONCE")
+                .build();
+
+        clienteRepository.save(cliente);
+        log.info("✅ Cliente asociado creado con ID: {}", cliente.getId());
+
+        return usuario;
+    }
+
+    @Override
+    @Transactional
+    public LoginResponseDTO login(LoginDTO loginDTO) {
+        log.info("🔐 Intento de login: {}", loginDTO.getUsername());
+
+        try {
+            // 1. Autenticar con Spring Security
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            loginDTO.getUsername(),
+                            loginDTO.getPassword()
+                    )
+            );
+
+            // 2. Establecer autenticación en el contexto
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            // 3. Generar JWT token
+            String jwt = jwtTokenProvider.generarToken(authentication);
+
+            // 4. Obtener detalles del usuario
+            Usuario usuario = usuarioRepository.findByUsername(loginDTO.getUsername())
+                    .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+
+            // 5. Actualizar último acceso
+            usuario.setUltimoAcceso(LocalDateTime.now());
+            usuarioRepository.save(usuario);
+
+            // 6. Obtener roles
+            List<String> roles = authentication.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .filter(auth -> auth.startsWith("ROLE_"))
+                    .collect(Collectors.toList());
+
+            // 7. Construir respuesta
+            LoginResponseDTO response = LoginResponseDTO.builder()
+                    .token(jwt)
+                    .tipo("Bearer")
+                    .username(usuario.getUsername())
+                    .email(usuario.getEmail())
+                    .roles(roles)
+                    .build();
+
+            // 8. Agregar información del cliente si existe
+            if (usuario.getCliente() != null) {
+                Cliente cliente = usuario.getCliente();
+                response.setClienteId(cliente.getId());
+                response.setNombreCompleto(cliente.getNombre() + " " + cliente.getApellido());
+            }
+
+            log.info("✅ Login exitoso para: {}", usuario.getUsername());
+            return response;
+
+        } catch (Exception e) {
+            log.error("❌ Error en login: {}", e.getMessage());
+            throw new CredencialesInvalidasException("Credenciales inválidas");
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Usuario> obtenerPorUsername(String username) {
+        return usuarioRepository.findByUsername(username);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Usuario> obtenerPorEmail(String email) {
+        return usuarioRepository.findByEmail(email);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Usuario> obtenerPorId(Long id) {
+        return usuarioRepository.findById(id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Usuario> listarTodos() {
+        return usuarioRepository.findAll();
+    }
+
+    @Override
+    public Boolean existePorUsername(String username) {
+        return usuarioRepository.existsByUsername(username);
+    }
+
+    @Override
+    public Boolean existePorEmail(String email) {
+        return usuarioRepository.existsByEmail(email);
+    }
+
+    @Override
+    @Transactional
+    public void asignarRol(Long usuarioId, String nombreRol) {
+        log.info("👤 Asignando rol {} al usuario {}", nombreRol, usuarioId);
+
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+
+        Rol rol = rolRepository.findByNombre(nombreRol)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Rol no encontrado: " + nombreRol));
+
+        usuario.agregarRol(rol);
+        usuarioRepository.save(usuario);
+
+        log.info("✅ Rol asignado exitosamente");
+    }
+
+    @Override
+    @Transactional
+    public void removerRol(Long usuarioId, String nombreRol) {
+        log.info("👤 Removiendo rol {} del usuario {}", nombreRol, usuarioId);
+
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+
+        Rol rol = rolRepository.findByNombre(nombreRol)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Rol no encontrado: " + nombreRol));
+
+        usuario.removerRol(rol);
+        usuarioRepository.save(usuario);
+
+        log.info("✅ Rol removido exitosamente");
+    }
+
+    @Override
+    @Transactional
+    public void cambiarPassword(Long usuarioId, String passwordActual, String passwordNueva) {
+        log.info("🔑 Cambiando contraseña para usuario {}", usuarioId);
+
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+
+        // Validar contraseña actual
+        if (!passwordEncoder.matches(passwordActual, usuario.getPassword())) {
+            throw new CredencialesInvalidasException("La contraseña actual es incorrecta");
+        }
+
+        // Actualizar contraseña
+        usuario.setPassword(passwordEncoder.encode(passwordNueva));
+        usuarioRepository.save(usuario);
+
+        log.info("✅ Contraseña actualizada exitosamente");
+    }
+
+    @Override
+    @Transactional
+    public void cambiarEstado(Long usuarioId, Boolean activo) {
+        log.info("🔄 Cambiando estado de usuario {} a {}", usuarioId, activo ? "activo" : "inactivo");
+
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+
+        usuario.setActivo(activo);
+        usuarioRepository.save(usuario);
+
+        log.info("✅ Estado actualizado exitosamente");
+    }
+
+    @Override
+    @Transactional
+    public void actualizarUltimoAcceso(String username) {
+        usuarioRepository.findByUsername(username).ifPresent(usuario -> {
+            usuario.setUltimoAcceso(LocalDateTime.now());
+            usuarioRepository.save(usuario);
+        });
+    }
+}
