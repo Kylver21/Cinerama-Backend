@@ -12,7 +12,7 @@ import com.utp.cinerama.cinerama.model.Usuario;
 import com.utp.cinerama.cinerama.repository.ClienteRepository;
 import com.utp.cinerama.cinerama.repository.RolRepository;
 import com.utp.cinerama.cinerama.repository.UsuarioRepository;
-import com.utp.cinerama.cinerama.security.JwtTokenProvider;
+import com.utp.cinerama.cinerama.util.JwtUtil;
 import com.utp.cinerama.cinerama.service.UsuarioService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +40,7 @@ public class UsuarioServiceImpl implements UsuarioService {
     private final ClienteRepository clienteRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
-    private final JwtTokenProvider jwtTokenProvider;
+    private final JwtUtil jwtUtil;
 
     @Override
     @Transactional
@@ -114,8 +114,13 @@ public class UsuarioServiceImpl implements UsuarioService {
             // 2. Establecer autenticación en el contexto
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            // 3. Generar JWT token
-            String jwt = jwtTokenProvider.generarToken(authentication);
+        // 3. Generar JWT token (versión simple) por compatibilidad si este método es usado
+        List<String> roles = authentication.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .filter(auth -> auth.startsWith("ROLE_"))
+            .collect(Collectors.toList());
+        String rol = roles.isEmpty() ? "" : roles.get(0);
+        String jwt = jwtUtil.generateToken(loginDTO.getUsername(), rol);
 
             // 4. Obtener detalles del usuario
             Usuario usuario = usuarioRepository.findByUsername(loginDTO.getUsername())
@@ -125,11 +130,7 @@ public class UsuarioServiceImpl implements UsuarioService {
             usuario.setUltimoAcceso(LocalDateTime.now());
             usuarioRepository.save(usuario);
 
-            // 6. Obtener roles
-            List<String> roles = authentication.getAuthorities().stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .filter(auth -> auth.startsWith("ROLE_"))
-                    .collect(Collectors.toList());
+        // 6. Obtener roles (ya calculados arriba)
 
             // 7. Construir respuesta
             LoginResponseDTO response = LoginResponseDTO.builder()

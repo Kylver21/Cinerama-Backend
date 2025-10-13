@@ -4,14 +4,13 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Collections;
 
 /**
  * Utilidad para generar y validar tokens JWT
@@ -21,15 +20,13 @@ import java.util.Map;
 @Slf4j
 public class JwtUtil {
 
-    @Value("${jwt.secret}")
-    private String SECRET_KEY;
-
-    @Value("${jwt.expiration}")
-    private long jwtExpiration;
+    // Clave secreta fija de 64 caracteres (Base64) para entorno académico
+    // Nota: En producción debería ir en un vault o variable de entorno
+    private final String SECRET_KEY = "NDA0RTYzNTI2NjU1NkE1ODZFMzI3MjM1NzUzODc4MkY0MTNGNDQyODQ3MkI0QjYyNTA2NDUzNjc1NjZCNTk3MA==";
 
     /**
      * Obtener la clave de firma desde el secret (Base64)
-     * Este método centraliza la obtención de la clave para evitar repetición de código
+     * Este método centraliza la obtención de la clave para evitarS repetición de código
      */
     private Key getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
@@ -37,30 +34,27 @@ public class JwtUtil {
     }
 
     /**
-     * Generar token JWT con claims personalizados
-     * 
-     * @param username El username del usuario
-     * @param roles Lista de roles del usuario (ROLE_ADMIN, ROLE_CLIENTE, etc.)
-     * @param userId ID del usuario en la base de datos
-     * @param email Email del usuario
-     * @return Token JWT firmado
+     * Compatibilidad con ejemplo simplificado:
+     * Genera un token con un único rol en el claim "rol" y además en "roles" (lista)
+     * Expiración fija de 1 hora si no se configuró por propiedades.
      */
-    public String generateToken(String username, List<String> roles, Long userId, String email) {
+    public String generateToken(String username, String rol) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("roles", roles);    // Almacenar roles en el token
-        claims.put("userId", userId);  // Almacenar ID del usuario
-        claims.put("email", email);    // Almacenar email
-        
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtExpiration);
+        claims.put("rol", rol);
+        // También mantener consistencia con el resto de la app
+        claims.put("roles", Collections.singletonList(rol));
+
+    Date now = new Date();
+    // Expiración fija de 1 hora como en el ejemplo simplificado
+    Date expiryDate = new Date(now.getTime() + (1000L * 60 * 60));
 
         return Jwts.builder()
-                .setClaims(claims)              // Datos personalizados
-                .setSubject(username)           // Username como subject
-                .setIssuedAt(now)               // Fecha de creación
-                .setExpiration(expiryDate)      // Fecha de expiración
-                .signWith(getSigningKey(), SignatureAlgorithm.HS512) // Firma con HS512
-                .compact();                     // Convertir a String
+                .setClaims(claims)
+                .setSubject(username)
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .compact();
     }
 
     /**
@@ -101,30 +95,11 @@ public class JwtUtil {
     }
 
     /**
-     * Extraer roles del token
-     * Los roles están almacenados en los claims personalizados
+     * Compatibilidad con ejemplo simplificado: extrae el claim "rol" simple
      */
-    @SuppressWarnings("unchecked")
-    public List<String> extractRoles(String token) {
-        return (List<String>) extractAllClaims(token).get("roles");
-    }
-
-    /**
-     * Extraer ID del usuario del token
-     */
-    public Long extractUserId(String token) {
-        Object userIdObj = extractAllClaims(token).get("userId");
-        if (userIdObj instanceof Integer) {
-            return ((Integer) userIdObj).longValue();
-        }
-        return (Long) userIdObj;
-    }
-
-    /**
-     * Extraer email del token
-     */
-    public String extractEmail(String token) {
-        return (String) extractAllClaims(token).get("email");
+    public String extractRol(String token) {
+        Object value = extractAllClaims(token).get("rol");
+        return value != null ? value.toString() : null;
     }
 
     /**
@@ -156,27 +131,4 @@ public class JwtUtil {
         }
     }
 
-    /**
-     * Obtener fecha de expiración del token
-     */
-    public Date getExpirationDate(String token) {
-        return extractAllClaims(token).getExpiration();
-    }
-
-    /**
-     * Verificar si un token contiene un rol específico
-     * Útil para validaciones de autorización
-     */
-    public boolean hasRole(String token, String role) {
-        List<String> roles = extractRoles(token);
-        return roles != null && roles.contains(role);
-    }
-
-    /**
-     * Obtener tiempo restante del token en milisegundos
-     */
-    public long getTimeToExpiration(String token) {
-        Date expiration = getExpirationDate(token);
-        return expiration.getTime() - new Date().getTime();
-    }
 }

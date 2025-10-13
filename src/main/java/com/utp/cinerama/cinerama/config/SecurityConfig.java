@@ -1,13 +1,11 @@
 package com.utp.cinerama.cinerama.config;
 
 import com.utp.cinerama.cinerama.filter.JwtRequestFilter;
-import com.utp.cinerama.cinerama.security.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -31,12 +29,12 @@ import java.util.List;
  */
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity // Para usar @PreAuthorize en controllers
+@EnableMethodSecurity 
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final CustomUserDetailsService userDetailsService;
-    private final JwtRequestFilter jwtRequestFilter; // RENOMBRADO: JwtAuthenticationFilter → JwtRequestFilter
+    
+    private final JwtRequestFilter jwtRequestFilter; 
 
     /**
      * Configuración principal de seguridad
@@ -44,7 +42,6 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // Deshabilitar CSRF (no es necesario para APIs REST con JWT)
                 .csrf(AbstractHttpConfigurer::disable)
 
                 // Configurar CORS
@@ -60,16 +57,16 @@ public class SecurityConfig {
                         // Películas (consulta pública)
                         .requestMatchers(HttpMethod.GET, "/api/peliculas/**").permitAll()
                         
-                        // Salas (consulta pública)
+                        
                         .requestMatchers(HttpMethod.GET, "/api/salas/**").permitAll()
                         
-                        // Funciones (consulta pública)
+                        
                         .requestMatchers(HttpMethod.GET, "/api/funciones/**").permitAll()
                         
-                        // Productos (consulta pública)
+                        
                         .requestMatchers(HttpMethod.GET, "/api/productos/**").permitAll()
                         
-                        // Asientos (consulta pública para ver mapa)
+                        
                         .requestMatchers(HttpMethod.GET, "/api/asientos/funcion/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/asientos/estadisticas/**").permitAll()
 
@@ -129,9 +126,6 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
-                // Configurar proveedor de autenticación (usa BCrypt automáticamente)
-                .authenticationProvider(authenticationProvider())
-
                 // Agregar filtro JWT antes del filtro de autenticación estándar
                 .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -145,21 +139,21 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Orígenes permitidos (agregar tu frontend)
+        
         configuration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:3000",      // React
-                "http://localhost:4200",      // Angular
-                "http://localhost:8081",      // Vue
-                "http://localhost:5173",      // Vite
-                "*"                           // Todos (solo para desarrollo)
+                "http://localhost:3000",      
+                "http://localhost:4200",      
+                "http://localhost:8081",      
+                "http://localhost:5173",      
+                "*"                           
         ));
         
-        // Métodos HTTP permitidos
+        
         configuration.setAllowedMethods(Arrays.asList(
                 "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
         ));
         
-        // Headers permitidos
+       
         configuration.setAllowedHeaders(List.of("*"));
         
         // Permitir credenciales (cookies, authorization headers)
@@ -182,16 +176,9 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    /**
-     * Proveedor de autenticación personalizado
-     */
-    @Bean
-    public DaoAuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService);
-        authProvider.setPasswordEncoder(passwordEncoder());
-        return authProvider;
-    }
+    // Nota: No registramos manualmente DaoAuthenticationProvider para evitar usar
+    // su constructor deprecado. Spring Boot auto-configura un AuthenticationManager
+    // basado en el UserDetailsService y PasswordEncoder presentes en el contexto.
 
     /**
      * Bean de AuthenticationManager para autenticación manual

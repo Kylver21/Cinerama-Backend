@@ -1,30 +1,19 @@
 package com.utp.cinerama.cinerama.config;
 
 import lombok.Getter;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Configuración de TMDb API
- * Asegúrate de agregar la API KEY en application.properties
- */
 @Configuration
 @Getter
 public class TMDbConfig {
 
-    @Value("${tmdb.api.key:YOUR_API_KEY_HERE}")
-    private String apiKey;
+    
+    private final String apiKey = "a15638b6523e2921983beafd70d732f6";
+    private final String baseUrl = "https://api.themoviedb.org/3";
+    private final String language = "es-MX";
+    private final String region = "PE";
 
-    @Value("${tmdb.api.base-url:https://api.themoviedb.org/3}")
-    private String baseUrl;
-
-    @Value("${tmdb.api.language:es-MX}")
-    private String language;
-
-    @Value("${tmdb.api.region:PE}")
-    private String region;
-
-    // Endpoints específicos
+    
     public String getNowPlayingUrl() {
         return baseUrl + "/movie/now_playing";
     }

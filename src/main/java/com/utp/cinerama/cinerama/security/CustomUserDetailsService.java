@@ -1,6 +1,5 @@
 package com.utp.cinerama.cinerama.security;
 
-import com.utp.cinerama.cinerama.model.Permiso;
 import com.utp.cinerama.cinerama.model.Rol;
 import com.utp.cinerama.cinerama.model.Usuario;
 import com.utp.cinerama.cinerama.repository.UsuarioRepository;

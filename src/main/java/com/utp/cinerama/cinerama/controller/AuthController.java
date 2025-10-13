@@ -98,13 +98,9 @@ public class AuthController {
                     .map(authority -> authority.getAuthority())
                     .collect(Collectors.toList());
 
-            // 4. Generar token JWT con JwtUtil (incluye roles, userId, email)
-            String jwt = jwtUtil.generateToken(
-                    usuario.getUsername(),
-                    roles,
-                    usuario.getId(),
-                    usuario.getEmail()
-            );
+            // 4. Generar token JWT con la versión simple (username + rol)
+            String rol = roles.isEmpty() ? "" : roles.get(0);
+            String jwt = jwtUtil.generateToken(usuario.getUsername(), rol);
 
             log.info("🎫 Token JWT generado para: {} con roles: {}", usuario.getUsername(), roles);
 
@@ -252,12 +248,23 @@ public class AuthController {
     @GetMapping("/validate")
     public ResponseEntity<?> validarToken(@RequestHeader("Authorization") String authHeader) {
         try {
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(TokenValidationDTO.builder()
+                                .valido(false)
+                                .mensaje("Falta o es inválido el header Authorization con esquema Bearer")
+                                .build());
+            }
+
             String token = authHeader.substring(7); // Remover "Bearer "
             boolean valido = jwtUtil.validateToken(token);
 
-            if (valido) {
-                String username = jwtUtil.extractUsername(token);
-                List<String> roles = jwtUtil.extractRoles(token);
+                        if (valido) {
+                                String username = jwtUtil.extractUsername(token);
+                                String rol = jwtUtil.extractRol(token);
+                                List<String> roles = (rol != null && !rol.isEmpty())
+                                                ? java.util.List.of(rol)
+                                                : java.util.List.of();
 
                 return ResponseEntity.ok(TokenValidationDTO.builder()
                         .valido(true)
@@ -289,7 +296,15 @@ public class AuthController {
     @PostMapping("/refresh")
     public ResponseEntity<?> refreshToken(@RequestHeader("Authorization") String authHeader) {
         try {
-            String oldToken = authHeader.substring(7);
+                        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                                .body(MensajeDTO.builder()
+                                                                .exitoso(false)
+                                                                .mensaje("Falta o es inválido el header Authorization con esquema Bearer")
+                                                                .build());
+                        }
+
+                        String oldToken = authHeader.substring(7);
             
             // Validar token actual
             if (!jwtUtil.validateToken(oldToken)) {
@@ -302,12 +317,16 @@ public class AuthController {
 
             // Extraer información del token anterior
             String username = jwtUtil.extractUsername(oldToken);
-            List<String> roles = jwtUtil.extractRoles(oldToken);
-            Long userId = jwtUtil.extractUserId(oldToken);
-            String email = jwtUtil.extractEmail(oldToken);
+            String rol = jwtUtil.extractRol(oldToken);
+            // Carga del usuario para armar respuesta consistente
+            Usuario usuario = usuarioService.obtenerPorUsername(username)
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            List<String> roles = usuario.getNombresRoles() != null
+                    ? new java.util.ArrayList<>(usuario.getNombresRoles())
+                    : java.util.Collections.emptyList();
 
             // Generar nuevo token
-            String newToken = jwtUtil.generateToken(username, roles, userId, email);
+            String newToken = jwtUtil.generateToken(username, rol);
 
             log.info("🔄 Token refrescado para: {}", username);
 
@@ -315,9 +334,9 @@ public class AuthController {
                     .token(newToken)
                     .tipo("Bearer")
                     .username(username)
-                    .email(email)
+                    .email(usuario.getEmail())
                     .roles(roles)
-                    .userId(userId)
+                    .userId(usuario.getId())
                     .build());
 
         } catch (Exception e) {
