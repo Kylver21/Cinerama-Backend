@@ -73,8 +73,8 @@ public interface AsientoRepository extends JpaRepository<Asiento, Long> {
      */
     boolean existsByFuncionIdAndFilaAndNumero(Long funcionId, String fila, Integer numero);
 
-    /**
-     * 🎫 Obtiene asiento por tipo (VIP, NORMAL, etc.)
-     */
+       /**
+        * 🎫 Obtiene asientos por tipo (solo NORMAL en Cinerama Chimbote)
+        */
     List<Asiento> findByFuncionIdAndTipo(Long funcionId, Asiento.TipoAsiento tipo);
 }

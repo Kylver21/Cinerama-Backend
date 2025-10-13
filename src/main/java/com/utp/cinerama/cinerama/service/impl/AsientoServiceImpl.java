@@ -111,7 +111,7 @@ public class AsientoServiceImpl implements AsientoService {
         int capacidad = sala.getCapacidad();
 
         // 🏗️ Calcular distribución de asientos
-        int asientosPorFila = 10; // Estándar
+    int asientosPorFila = 10; // Estándar
         int totalFilas = (int) Math.ceil((double) capacidad / asientosPorFila);
 
         List<Asiento> asientos = new ArrayList<>();
@@ -120,10 +120,10 @@ public class AsientoServiceImpl implements AsientoService {
             String fila = String.valueOf((char) ('A' + f)); // A, B, C, ...
 
             for (int n = 1; n <= asientosPorFila && asientos.size() < capacidad; n++) {
-                // 🎭 Determinar tipo de asiento
-                TipoAsiento tipo = determinarTipoAsiento(f, n, totalFilas);
+                // 🎭 En Cinerama Chimbote solo hay asientos NORMAL
+                TipoAsiento tipo = TipoAsiento.NORMAL;
 
-                // 💰 Determinar precio según tipo
+                // 💰 Precio plano para asientos NORMAL
                 Double precio = calcularPrecioAsiento(tipo);
 
                 Asiento asiento = Asiento.builder()
@@ -194,37 +194,10 @@ public class AsientoServiceImpl implements AsientoService {
     // 🎭 Métodos auxiliares
 
     /**
-     * Determina el tipo de asiento según su ubicación
-     */
-    private TipoAsiento determinarTipoAsiento(int filaIndex, int numero, int totalFilas) {
-        // 🎭 Últimas 2 filas = VIP
-        if (filaIndex >= totalFilas - 2) {
-            return TipoAsiento.VIP;
-        }
-
-        // ♿ Asientos 1 y 2 de la primera fila = DISCAPACITADO
-        if (filaIndex == 0 && (numero == 1 || numero == 2)) {
-            return TipoAsiento.DISCAPACITADO;
-        }
-
-        // 💑 Asientos pares en filas centrales = PAREJA
-        if (filaIndex > 1 && filaIndex < totalFilas - 2 && numero % 2 == 0) {
-            return TipoAsiento.PAREJA;
-        }
-
-        // 🪑 Resto = NORMAL
-        return TipoAsiento.NORMAL;
-    }
-
-    /**
      * Calcula el precio según el tipo de asiento
      */
     private Double calcularPrecioAsiento(TipoAsiento tipo) {
-        return switch (tipo) {
-            case VIP -> 25.0;
-            case PAREJA -> 18.0;
-            case DISCAPACITADO -> 10.0;
-            case NORMAL -> 15.0;
-        };
+        // Precio único para asientos NORMAL
+        return 15.0;
     }
 }

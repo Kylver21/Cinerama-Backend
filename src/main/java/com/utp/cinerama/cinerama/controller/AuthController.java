@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -93,9 +92,10 @@ public class AuthController {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             Usuario usuario = userDetailsService.obtenerUsuarioCompleto(userDetails.getUsername());
 
-            // 3. Extraer roles como lista de strings
+            // 3. Extraer SOLO roles (prefijo ROLE_), no permisos
             List<String> roles = userDetails.getAuthorities().stream()
-                    .map(authority -> authority.getAuthority())
+                    .map(a -> a.getAuthority())
+                    .filter(name -> name.startsWith("ROLE_"))
                     .collect(Collectors.toList());
 
             // 4. Generar token JWT con la versión simple (username + rol)
@@ -153,8 +153,7 @@ public class AuthController {
      * 👤 GET /api/auth/me
      * Obtener información del usuario autenticado actual
      */
-    @GetMapping("/me")
-    @PreAuthorize("isAuthenticated()")
+        @GetMapping("/me")
     public ResponseEntity<UsuarioInfoDTO> obtenerUsuarioActual() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
@@ -190,8 +189,7 @@ public class AuthController {
      * 🔄 POST /api/auth/cambiar-password
      * Cambiar contraseña del usuario actual
      */
-    @PostMapping("/cambiar-password")
-    @PreAuthorize("isAuthenticated()")
+        @PostMapping("/cambiar-password")
     public ResponseEntity<MensajeDTO> cambiarPassword(@Valid @RequestBody CambiarPasswordDTO dto) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();

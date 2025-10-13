@@ -29,10 +29,10 @@ public class Asiento {
     private Funcion funcion;
 
     @Column(nullable = false, length = 2)
-    private String fila; // A, B, C, D, E, F, etc.
+    private String fila; 
 
     @Column(nullable = false)
-    private Integer numero; // 1, 2, 3, 4, 5, etc.
+    private Integer numero; 
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -60,10 +60,8 @@ public class Asiento {
     private Boleto boleto;
 
     public enum TipoAsiento {
-        NORMAL("Normal", 1.0),
-        VIP("VIP", 1.5),
-        DISCAPACITADO("Discapacitado", 1.0),
-        PAREJA("Pareja", 1.3); // Asiento doble/love seat
+        
+        NORMAL("Normal", 1.0);
 
         private final String descripcion;
         private final Double multiplicadorPrecio;

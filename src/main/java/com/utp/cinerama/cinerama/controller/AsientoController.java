@@ -117,7 +117,7 @@ public class AsientoController {
 
     /**
      * 🎫 GET /api/asientos/funcion/{funcionId}/tipo/{tipo}
-     * Obtiene asientos de una función filtrados por tipo (VIP, NORMAL, etc.)
+     * Obtiene asientos de una función filtrados por tipo (actualmente solo NORMAL)
      */
     @GetMapping("/funcion/{funcionId}/tipo/{tipo}")
     public ResponseEntity<List<Asiento>> obtenerAsientosPorTipo(

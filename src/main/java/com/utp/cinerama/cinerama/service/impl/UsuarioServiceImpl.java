@@ -3,9 +3,6 @@ package com.utp.cinerama.cinerama.service.impl;
 import com.utp.cinerama.cinerama.dto.LoginDTO;
 import com.utp.cinerama.cinerama.dto.LoginResponseDTO;
 import com.utp.cinerama.cinerama.dto.RegistroDTO;
-import com.utp.cinerama.cinerama.exception.CredencialesInvalidasException;
-import com.utp.cinerama.cinerama.exception.RecursoNoEncontradoException;
-import com.utp.cinerama.cinerama.exception.UsuarioYaExisteException;
 import com.utp.cinerama.cinerama.model.Cliente;
 import com.utp.cinerama.cinerama.model.Rol;
 import com.utp.cinerama.cinerama.model.Usuario;
@@ -16,6 +13,7 @@ import com.utp.cinerama.cinerama.util.JwtUtil;
 import com.utp.cinerama.cinerama.service.UsuarioService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -24,6 +22,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -49,12 +48,12 @@ public class UsuarioServiceImpl implements UsuarioService {
 
         // 1. Validar que el username no exista
         if (usuarioRepository.existsByUsername(registroDTO.getUsername())) {
-            throw new UsuarioYaExisteException("El username '" + registroDTO.getUsername() + "' ya está en uso");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El username '" + registroDTO.getUsername() + "' ya está en uso");
         }
 
         // 2. Validar que el email no exista
         if (usuarioRepository.existsByEmail(registroDTO.getEmail())) {
-            throw new UsuarioYaExisteException("El email '" + registroDTO.getEmail() + "' ya está registrado");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El email '" + registroDTO.getEmail() + "' ya está registrado");
         }
 
         // 3. Crear usuario
@@ -69,8 +68,8 @@ public class UsuarioServiceImpl implements UsuarioService {
                 .build();
 
         // 4. Asignar rol CLIENTE por defecto
-        Rol rolCliente = rolRepository.findByNombre("ROLE_CLIENTE")
-                .orElseThrow(() -> new RecursoNoEncontradoException("Rol ROLE_CLIENTE no encontrado"));
+    Rol rolCliente = rolRepository.findByNombre("ROLE_CLIENTE")
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Rol ROLE_CLIENTE no encontrado"));
         
         usuario.agregarRol(rolCliente);
 
@@ -123,8 +122,8 @@ public class UsuarioServiceImpl implements UsuarioService {
         String jwt = jwtUtil.generateToken(loginDTO.getUsername(), rol);
 
             // 4. Obtener detalles del usuario
-            Usuario usuario = usuarioRepository.findByUsername(loginDTO.getUsername())
-                    .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+        Usuario usuario = usuarioRepository.findByUsername(loginDTO.getUsername())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
             // 5. Actualizar último acceso
             usuario.setUltimoAcceso(LocalDateTime.now());
@@ -153,7 +152,7 @@ public class UsuarioServiceImpl implements UsuarioService {
 
         } catch (Exception e) {
             log.error("❌ Error en login: {}", e.getMessage());
-            throw new CredencialesInvalidasException("Credenciales inválidas");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciales inválidas");
         }
     }
 
@@ -197,10 +196,10 @@ public class UsuarioServiceImpl implements UsuarioService {
         log.info("👤 Asignando rol {} al usuario {}", nombreRol, usuarioId);
 
         Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
         Rol rol = rolRepository.findByNombre(nombreRol)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Rol no encontrado: " + nombreRol));
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Rol no encontrado: " + nombreRol));
 
         usuario.agregarRol(rol);
         usuarioRepository.save(usuario);
@@ -214,10 +213,10 @@ public class UsuarioServiceImpl implements UsuarioService {
         log.info("👤 Removiendo rol {} del usuario {}", nombreRol, usuarioId);
 
         Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
         Rol rol = rolRepository.findByNombre(nombreRol)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Rol no encontrado: " + nombreRol));
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Rol no encontrado: " + nombreRol));
 
         usuario.removerRol(rol);
         usuarioRepository.save(usuario);
@@ -231,11 +230,11 @@ public class UsuarioServiceImpl implements UsuarioService {
         log.info("🔑 Cambiando contraseña para usuario {}", usuarioId);
 
         Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
         // Validar contraseña actual
         if (!passwordEncoder.matches(passwordActual, usuario.getPassword())) {
-            throw new CredencialesInvalidasException("La contraseña actual es incorrecta");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contraseña actual es incorrecta");
         }
 
         // Actualizar contraseña
@@ -251,7 +250,7 @@ public class UsuarioServiceImpl implements UsuarioService {
         log.info("🔄 Cambiando estado de usuario {} a {}", usuarioId, activo ? "activo" : "inactivo");
 
         Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
         usuario.setActivo(activo);
         usuarioRepository.save(usuario);
