@@ -403,7 +403,11 @@ public class AuthController {
     @lombok.NoArgsConstructor
     @lombok.AllArgsConstructor
     public static class CambiarPasswordDTO {
+        @jakarta.validation.constraints.NotBlank(message = "La contraseña actual es obligatoria")
         private String passwordActual;
+        
+        @jakarta.validation.constraints.NotBlank(message = "La contraseña nueva es obligatoria")
+        @jakarta.validation.constraints.Size(min = 6, max = 100, message = "La contraseña debe tener al menos 6 caracteres")
         private String passwordNueva;
     }
 
