@@ -23,10 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Controlador de autenticación - PATRÓN SIMPLIFICADO
- * Maneja login, registro y operaciones de JWT con BCrypt
- */
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -39,10 +36,7 @@ public class AuthController {
     private final CustomUserDetailsService userDetailsService;
     private final JwtUtil jwtUtil;
 
-    /**
-     * 📝 POST /api/auth/register
-     * Registrar un nuevo usuario
-     */
+   
     @PostMapping("/register")
     public ResponseEntity<MensajeDTO> registrar(@Valid @RequestBody RegistroDTO registroDTO) {
         log.info("📝 Solicitud de registro para username: {}", registroDTO.getUsername());
@@ -57,18 +51,7 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
     }
 
-    /**
-     * 🔐 POST /api/auth/login
-     * Autenticar usuario y obtener JWT token
-     * 
-     * FLUJO:
-     * 1. AuthenticationManager autentica con BCrypt
-     * 2. Si es exitoso, carga detalles del usuario
-     * 3. Extrae roles del UserDetails
-     * 4. Genera token JWT con JwtUtil
-     * 5. Opcionalmente crea cookie para remember me
-     * 6. Retorna token + userId + clienteId + roles
-     */
+    
     @PostMapping("/login")
     public ResponseEntity<?> login(
             @Valid @RequestBody LoginDTO loginDTO,
@@ -78,7 +61,7 @@ public class AuthController {
         log.info("🔐 Intento de login: {}", loginDTO.getUsername());
 
         try {
-            // 1. Autenticar con Spring Security (BCrypt automático)
+            
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             loginDTO.getUsername(),
@@ -88,17 +71,17 @@ public class AuthController {
 
             log.info("✅ Autenticación exitosa para: {}", loginDTO.getUsername());
 
-            // 2. Cargar detalles del usuario
+            
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             Usuario usuario = userDetailsService.obtenerUsuarioCompleto(userDetails.getUsername());
 
-            // 3. Extraer SOLO roles (prefijo ROLE_), no permisos
+            
             List<String> roles = userDetails.getAuthorities().stream()
                     .map(a -> a.getAuthority())
                     .filter(name -> name.startsWith("ROLE_"))
                     .collect(Collectors.toList());
 
-            // 4. Generar token JWT con la versión simple (username + rol)
+            
             String rol = roles.isEmpty() ? "" : roles.get(0);
             String jwt = jwtUtil.generateToken(usuario.getUsername(), rol);
 
@@ -239,10 +222,7 @@ public class AuthController {
         return ResponseEntity.ok(respuesta);
     }
 
-    /**
-     * ✅ GET /api/auth/validate
-     * Validar token JWT
-     */
+    
     @GetMapping("/validate")
     public ResponseEntity<?> validarToken(@RequestHeader("Authorization") String authHeader) {
         try {
@@ -287,10 +267,7 @@ public class AuthController {
         }
     }
 
-    /**
-     * 🔄 POST /api/auth/refresh
-     * Refrescar token (generar nuevo token antes de que expire)
-     */
+    
     @PostMapping("/refresh")
     public ResponseEntity<?> refreshToken(@RequestHeader("Authorization") String authHeader) {
         try {
@@ -347,10 +324,7 @@ public class AuthController {
         }
     }
 
-    /**
-     * ✅ GET /api/auth/validar-username/{username}
-     * Verificar si un username está disponible
-     */
+    
     @GetMapping("/validar-username/{username}")
     public ResponseEntity<DisponibilidadDTO> validarUsername(@PathVariable String username) {
         Boolean disponible = !usuarioService.existePorUsername(username);
@@ -363,10 +337,7 @@ public class AuthController {
         return ResponseEntity.ok(respuesta);
     }
 
-    /**
-     * ✅ GET /api/auth/validar-email/{email}
-     * Verificar si un email está disponible
-     */
+    
     @GetMapping("/validar-email/{email}")
     public ResponseEntity<DisponibilidadDTO> validarEmail(@PathVariable String email) {
         Boolean disponible = !usuarioService.existePorEmail(email);
@@ -379,7 +350,7 @@ public class AuthController {
         return ResponseEntity.ok(respuesta);
     }
 
-    // ========== DTOs internos ==========
+    
 
     @lombok.Data
     @lombok.Builder

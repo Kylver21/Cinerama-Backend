@@ -2,6 +2,8 @@ package com.utp.cinerama.cinerama.controller;
 
 import com.utp.cinerama.cinerama.dto.SyncResponseDTO;
 import com.utp.cinerama.cinerama.model.Pelicula;
+import com.utp.cinerama.cinerama.dto.TMDbMovieDTO;
+import com.utp.cinerama.cinerama.service.TMDbService;
 import com.utp.cinerama.cinerama.service.PeliculaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +20,7 @@ import java.util.List;
 public class PeliculaController {
 
     private final PeliculaService peliculaService;
+    private final TMDbService tmdbService;
 
     // ========== Búsquedas Específicas (DEBEN IR PRIMERO) ==========
     
@@ -31,6 +34,16 @@ public class PeliculaController {
     public List<Pelicula> obtenerPorPopularidad() {
         log.info("⭐ Obteniendo películas por popularidad");
         return peliculaService.obtenerPeliculasPorPopularidad();
+    }
+
+    /**
+     * Estrenos directamente desde TMDb (now_playing) sin persistir
+     * Público: GET /api/peliculas/estrenos?page=1
+     */
+    @GetMapping("/estrenos")
+    public List<TMDbMovieDTO> obtenerEstrenos(@RequestParam(name = "page", required = false) Integer page) {
+        log.info("🎬 Obteniendo estrenos desde TMDb (page: {})", page);
+        return tmdbService.getNowPlayingMovies(page != null ? page : 1);
     }
 
     @GetMapping("/mejor-valoradas")
