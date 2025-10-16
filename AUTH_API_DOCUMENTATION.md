@@ -304,7 +304,5 @@ All endpoints may return the following error responses:
 ## Notes
 
 - All passwords are stored using BCrypt hashing
-- JWT tokens expire after 1 hour
-- Remember Me cookies last 7 days
 - CORS is enabled for all origins (configure for production)
 - In production, enable HTTPS and set `cookie.setSecure(true)`
