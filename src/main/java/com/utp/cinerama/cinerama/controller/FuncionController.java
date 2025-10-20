@@ -1,8 +1,13 @@
 package com.utp.cinerama.cinerama.controller;
 
+import com.utp.cinerama.cinerama.dto.ApiResponse;
+import com.utp.cinerama.cinerama.exception.ResourceNotFoundException;
 import com.utp.cinerama.cinerama.model.Funcion;
 import com.utp.cinerama.cinerama.service.FuncionService;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,40 +15,62 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/funciones")
+@RequiredArgsConstructor
+@Slf4j
 public class FuncionController {
 
-    @Autowired
-    private FuncionService funcionService;
+    private final FuncionService funcionService;
 
     @GetMapping
-    public List<Funcion> obtenerTodasLasFunciones() {
-        return funcionService.obtenerTodasLasFunciones();
+    public ResponseEntity<ApiResponse<List<Funcion>>> obtenerTodasLasFunciones() {
+        log.info("Obteniendo todas las funciones");
+        List<Funcion> funciones = funcionService.obtenerTodasLasFunciones();
+        return ResponseEntity.ok(
+            ApiResponse.success("Funciones obtenidas exitosamente", funciones)
+        );
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Funcion> obtenerFuncionPorId(@PathVariable Long id) {
-        return funcionService.obtenerFuncionPorId(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<ApiResponse<Funcion>> obtenerFuncionPorId(@PathVariable Long id) {
+        log.info("Buscando función por ID: {}", id);
+        Funcion funcion = funcionService.obtenerFuncionPorId(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Funcion", "id", id));
+        
+        return ResponseEntity.ok(
+            ApiResponse.success("Función obtenida exitosamente", funcion)
+        );
     }
 
     @PostMapping
-    public Funcion crearFuncion(@RequestBody Funcion funcion) {
-        return funcionService.crearFuncion(funcion);
+    public ResponseEntity<ApiResponse<Funcion>> crearFuncion(@Valid @RequestBody Funcion funcion) {
+        log.info("Creando nueva función");
+        Funcion nuevaFuncion = funcionService.crearFuncion(funcion);
+        
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Función creada exitosamente", nuevaFuncion));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Funcion> actualizarFuncion(@PathVariable Long id, @RequestBody Funcion funcion) {
-        try {
-            return ResponseEntity.ok(funcionService.actualizarFuncion(id, funcion));
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<ApiResponse<Funcion>> actualizarFuncion(
+            @PathVariable Long id, 
+            @Valid @RequestBody Funcion funcion) {
+        
+        log.info("Actualizando función ID: {}", id);
+        Funcion funcionActualizada = funcionService.actualizarFuncion(id, funcion);
+        
+        return ResponseEntity.ok(
+            ApiResponse.success("Función actualizada exitosamente", funcionActualizada)
+        );
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminarFuncion(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<String>> eliminarFuncion(@PathVariable Long id) {
+        log.info("Eliminando función ID: {}", id);
         funcionService.eliminarFuncion(id);
-        return ResponseEntity.noContent().build();
+        
+        return ResponseEntity.ok(
+            ApiResponse.success("Función eliminada exitosamente")
+        );
     }
 }

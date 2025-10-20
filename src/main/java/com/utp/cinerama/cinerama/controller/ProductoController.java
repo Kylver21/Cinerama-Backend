@@ -1,8 +1,13 @@
 package com.utp.cinerama.cinerama.controller;
 
+import com.utp.cinerama.cinerama.dto.ApiResponse;
+import com.utp.cinerama.cinerama.exception.ResourceNotFoundException;
 import com.utp.cinerama.cinerama.model.Producto;
 import com.utp.cinerama.cinerama.service.ProductoService;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,40 +15,62 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/productos")
+@RequiredArgsConstructor
+@Slf4j
 public class ProductoController {
 
-    @Autowired
-    private ProductoService productoService;
+    private final ProductoService productoService;
 
     @GetMapping
-    public List<Producto> obtenerTodosLosProductos() {
-        return productoService.obtenerTodosLosProductos();
+    public ResponseEntity<ApiResponse<List<Producto>>> obtenerTodosLosProductos() {
+        log.info("Obteniendo todos los productos");
+        List<Producto> productos = productoService.obtenerTodosLosProductos();
+        return ResponseEntity.ok(
+            ApiResponse.success("Productos obtenidos exitosamente", productos)
+        );
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Producto> obtenerProductoPorId(@PathVariable Long id) {
-        return productoService.obtenerProductoPorId(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<ApiResponse<Producto>> obtenerProductoPorId(@PathVariable Long id) {
+        log.info("Buscando producto por ID: {}", id);
+        Producto producto = productoService.obtenerProductoPorId(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Producto", "id", id));
+        
+        return ResponseEntity.ok(
+            ApiResponse.success("Producto obtenido exitosamente", producto)
+        );
     }
 
     @PostMapping
-    public Producto crearProducto(@RequestBody Producto producto) {
-        return productoService.crearProducto(producto);
+    public ResponseEntity<ApiResponse<Producto>> crearProducto(@Valid @RequestBody Producto producto) {
+        log.info("Creando nuevo producto: {}", producto.getNombre());
+        Producto nuevoProducto = productoService.crearProducto(producto);
+        
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Producto creado exitosamente", nuevoProducto));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Producto> actualizarProducto(@PathVariable Long id, @RequestBody Producto producto) {
-        try {
-            return ResponseEntity.ok(productoService.actualizarProducto(id, producto));
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<ApiResponse<Producto>> actualizarProducto(
+            @PathVariable Long id, 
+            @Valid @RequestBody Producto producto) {
+        
+        log.info("Actualizando producto ID: {}", id);
+        Producto productoActualizado = productoService.actualizarProducto(id, producto);
+        
+        return ResponseEntity.ok(
+            ApiResponse.success("Producto actualizado exitosamente", productoActualizado)
+        );
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminarProducto(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<String>> eliminarProducto(@PathVariable Long id) {
+        log.info("Eliminando producto ID: {}", id);
         productoService.eliminarProducto(id);
-        return ResponseEntity.noContent().build();
+        
+        return ResponseEntity.ok(
+            ApiResponse.success("Producto eliminado exitosamente")
+        );
     }
 }

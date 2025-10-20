@@ -1,9 +1,13 @@
 package com.utp.cinerama.cinerama.controller;
 
+import com.utp.cinerama.cinerama.dto.ApiResponse;
+import com.utp.cinerama.cinerama.exception.ResourceNotFoundException;
 import com.utp.cinerama.cinerama.model.Sala;
 import com.utp.cinerama.cinerama.service.SalaService;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,50 +15,82 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/salas")
+@RequiredArgsConstructor
+@Slf4j
 public class SalaController {
 
-    @Autowired
-    private SalaService salaService;
+    private final SalaService salaService;
 
     @GetMapping
-    public List<Sala> obtenerTodasLasSalas() {
-        return salaService.obtenerTodasLasSalas();
+    public ResponseEntity<ApiResponse<List<Sala>>> obtenerTodasLasSalas() {
+        log.info("Obteniendo todas las salas");
+        List<Sala> salas = salaService.obtenerTodasLasSalas();
+        return ResponseEntity.ok(
+            ApiResponse.success("Salas obtenidas exitosamente", salas)
+        );
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Sala> obtenerSalaPorId(@PathVariable Long id) {
-        return salaService.obtenerSalaPorId(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<ApiResponse<Sala>> obtenerSalaPorId(@PathVariable Long id) {
+        log.info("Buscando sala por ID: {}", id);
+        Sala sala = salaService.obtenerSalaPorId(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Sala", "id", id));
+        
+        return ResponseEntity.ok(
+            ApiResponse.success("Sala obtenida exitosamente", sala)
+        );
     }
 
     @PostMapping
-    public Sala crearSala(@RequestBody Sala sala) {
-        return salaService.crearSala(sala);
+    public ResponseEntity<ApiResponse<Sala>> crearSala(@Valid @RequestBody Sala sala) {
+        log.info("Creando nueva sala: {}", sala.getNombre());
+        Sala nuevaSala = salaService.crearSala(sala);
+        
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Sala creada exitosamente", nuevaSala));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Sala> actualizarSala(@PathVariable Long id, @RequestBody Sala sala) {
-        try {
-            return ResponseEntity.ok(salaService.actualizarSala(id, sala));
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<ApiResponse<Sala>> actualizarSala(
+            @PathVariable Long id, 
+            @Valid @RequestBody Sala sala) {
+        
+        log.info("Actualizando sala ID: {}", id);
+        Sala salaActualizada = salaService.actualizarSala(id, sala);
+        
+        return ResponseEntity.ok(
+            ApiResponse.success("Sala actualizada exitosamente", salaActualizada)
+        );
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminarSala(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<String>> eliminarSala(@PathVariable Long id) {
+        log.info("Eliminando sala ID: {}", id);
         salaService.eliminarSala(id);
-        return ResponseEntity.noContent().build();
+        
+        return ResponseEntity.ok(
+            ApiResponse.success("Sala eliminada exitosamente")
+        );
     }
 
     @GetMapping("/tipo/{tipo}")
-    public List<Sala> buscarPorTipo(@PathVariable Sala.TipoSala tipo) {
-        return salaService.buscarPorTipo(tipo);
+    public ResponseEntity<ApiResponse<List<Sala>>> buscarPorTipo(@PathVariable Sala.TipoSala tipo) {
+        log.info("Buscando salas por tipo: {}", tipo);
+        List<Sala> salas = salaService.buscarPorTipo(tipo);
+        
+        return ResponseEntity.ok(
+            ApiResponse.success("Salas del tipo '" + tipo + "' obtenidas exitosamente", salas)
+        );
     }
 
     @GetMapping("/activas")
-    public List<Sala> buscarSalasActivas() {
-        return salaService.buscarSalasActivas();
+    public ResponseEntity<ApiResponse<List<Sala>>> buscarSalasActivas() {
+        log.info("Buscando salas activas");
+        List<Sala> salas = salaService.buscarSalasActivas();
+        
+        return ResponseEntity.ok(
+            ApiResponse.success("Salas activas obtenidas exitosamente", salas)
+        );
     }
 }
