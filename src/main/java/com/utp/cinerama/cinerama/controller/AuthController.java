@@ -57,18 +57,6 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
     }
 
-    /**
-     * 🔐 POST /api/auth/login
-     * Autenticar usuario y obtener JWT token
-     * 
-     * FLUJO:
-     * 1. AuthenticationManager autentica con BCrypt
-     * 2. Si es exitoso, carga detalles del usuario
-     * 3. Extrae roles del UserDetails
-     * 4. Genera token JWT con JwtUtil
-     * 5. Opcionalmente crea cookie para remember me
-     * 6. Retorna token + userId + clienteId + roles
-     */
     @PostMapping("/login")
     public ResponseEntity<?> login(
             @Valid @RequestBody LoginDTO loginDTO,
@@ -149,10 +137,6 @@ public class AuthController {
         }
     }
 
-    /**
-     * 👤 GET /api/auth/me
-     * Obtener información del usuario autenticado actual
-     */
         @GetMapping("/me")
     public ResponseEntity<UsuarioInfoDTO> obtenerUsuarioActual() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -185,10 +169,7 @@ public class AuthController {
         return ResponseEntity.ok(info);
     }
 
-    /**
-     * 🔄 POST /api/auth/cambiar-password
-     * Cambiar contraseña del usuario actual
-     */
+
         @PostMapping("/cambiar-password")
     public ResponseEntity<MensajeDTO> cambiarPassword(@Valid @RequestBody CambiarPasswordDTO dto) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -213,10 +194,6 @@ public class AuthController {
         return ResponseEntity.ok(respuesta);
     }
 
-    /**
-     * 🚪 POST /api/auth/logout
-     * Logout (invalida cookie si existe)
-     */
     @PostMapping("/logout")
     public ResponseEntity<MensajeDTO> logout(HttpServletResponse response) {
         // Eliminar cookie JWT
@@ -239,10 +216,7 @@ public class AuthController {
         return ResponseEntity.ok(respuesta);
     }
 
-    /**
-     * ✅ GET /api/auth/validate
-     * Validar token JWT
-     */
+
     @GetMapping("/validate")
     public ResponseEntity<?> validarToken(@RequestHeader("Authorization") String authHeader) {
         try {
@@ -287,10 +261,7 @@ public class AuthController {
         }
     }
 
-    /**
-     * 🔄 POST /api/auth/refresh
-     * Refrescar token (generar nuevo token antes de que expire)
-     */
+   
     @PostMapping("/refresh")
     public ResponseEntity<?> refreshToken(@RequestHeader("Authorization") String authHeader) {
         try {
