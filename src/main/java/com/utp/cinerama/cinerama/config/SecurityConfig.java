@@ -1,6 +1,8 @@
 package com.utp.cinerama.cinerama.config;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -27,12 +29,27 @@ import java.util.List;
  */
 @Configuration
 @EnableWebSecurity
-// @EnableMethodSecurity // Omitimos uso de @PreAuthorize y similares para esta versión simplificada
 @RequiredArgsConstructor
+@Slf4j
 public class SecurityConfig {
 
-    
-    private final JwtRequestFilter jwtRequestFilter; 
+    private final JwtRequestFilter jwtRequestFilter;
+
+    // Inyectar configuraciones de CORS desde application.properties
+    @Value("${cors.allowed-origins}")
+    private String[] allowedOrigins;
+
+    @Value("${cors.allowed-methods}")
+    private String[] allowedMethods;
+
+    @Value("${cors.allowed-headers}")
+    private String allowedHeaders;
+
+    @Value("${cors.allow-credentials}")
+    private boolean allowCredentials;
+
+    @Value("${cors.max-age}")
+    private long maxAge; 
 
     /**
      * Configuración principal de seguridad
@@ -131,38 +148,47 @@ public class SecurityConfig {
     }
 
     /**
-     * Configuración de CORS para permitir peticiones desde el frontend
+     * Configuración de CORS SEGURA para permitir peticiones desde el frontend
+     * Lee configuraciones desde application.properties para facilitar cambios
+     * entre entornos (dev/prod)
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+        log.info("Configurando CORS con origenes permitidos: {}", Arrays.toString(allowedOrigins));
+        
         CorsConfiguration configuration = new CorsConfiguration();
         
+        // Origenes permitidos (desde properties)
+        configuration.setAllowedOrigins(Arrays.asList(allowedOrigins));
         
-        configuration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:3000",      
-                "http://localhost:4200",      
-                "http://localhost:8081",      
-                "http://localhost:5173",      
-                "*"                           
+        // Métodos HTTP permitidos (desde properties)
+        configuration.setAllowedMethods(Arrays.asList(allowedMethods));
+        
+        // Headers permitidos
+        if ("*".equals(allowedHeaders)) {
+            configuration.setAllowedHeaders(List.of("*"));
+        } else {
+            configuration.setAllowedHeaders(Arrays.asList(allowedHeaders.split(",")));
+        }
+        
+        // Headers expuestos al cliente
+        configuration.setExposedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Type",
+                "X-Total-Count",
+                "X-Total-Pages"
         ));
-        
-        
-        configuration.setAllowedMethods(Arrays.asList(
-                "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
-        ));
-        
-       
-        configuration.setAllowedHeaders(List.of("*"));
         
         // Permitir credenciales (cookies, authorization headers)
-        configuration.setAllowCredentials(true);
+        configuration.setAllowCredentials(allowCredentials);
         
-        // Tiempo de cache para preflight requests
-        configuration.setMaxAge(3600L);
+        // Tiempo de cache para preflight requests (en segundos)
+        configuration.setMaxAge(maxAge);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         
+        log.info("CORS configurado exitosamente");
         return source;
     }
 
@@ -174,13 +200,6 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    // Nota: No registramos manualmente DaoAuthenticationProvider para evitar usar
-    // su constructor deprecado. Spring Boot auto-configura un AuthenticationManager
-    // basado en el UserDetailsService y PasswordEncoder presentes en el contexto.
-
-    /**
-     * Bean de AuthenticationManager para autenticación manual
-     */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();

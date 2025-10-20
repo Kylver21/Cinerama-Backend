@@ -1,10 +1,16 @@
 package com.utp.cinerama.cinerama.controller;
 
+import com.utp.cinerama.cinerama.dto.ApiResponse;
+import com.utp.cinerama.cinerama.dto.PagedResponse;
 import com.utp.cinerama.cinerama.dto.SyncResponseDTO;
+import com.utp.cinerama.cinerama.exception.ResourceNotFoundException;
 import com.utp.cinerama.cinerama.model.Pelicula;
 import com.utp.cinerama.cinerama.service.PeliculaService;
+import com.utp.cinerama.cinerama.util.PaginationUtils;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,93 +25,241 @@ public class PeliculaController {
 
     private final PeliculaService peliculaService;
 
-    // ========== Búsquedas Específicas (DEBEN IR PRIMERO) ==========
+    // ========== ENDPOINTS PAGINADOS (NUEVOS - PARA ANGULAR) ==========
+    
+    /**
+     * Obtiene películas paginadas con ordenamiento
+     * 
+     * @param page Número de página (0-indexed, default: 0)
+     * @param size Tamaño de página (default: 10)
+     * @param sortBy Campo de ordenamiento (default: id)
+     * @return Respuesta paginada con películas
+     * 
+     * Ejemplo: GET /api/peliculas/paginadas?page=0&size=10&sortBy=popularidad
+     */
+    @GetMapping("/paginadas")
+    public ResponseEntity<ApiResponse<PagedResponse<Pelicula>>> obtenerPeliculasPaginadas(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy) {
+        
+        log.info("Obteniendo películas paginadas - Page: {}, Size: {}, Sort: {}", page, size, sortBy);
+        
+        Page<Pelicula> peliculasPage = peliculaService.obtenerPeliculasPaginadas(page, size, sortBy);
+        PagedResponse<Pelicula> pagedResponse = PaginationUtils.toPagedResponse(peliculasPage);
+        
+        return ResponseEntity.ok(
+            ApiResponse.success("Películas obtenidas exitosamente", pagedResponse)
+        );
+    }
+
+    /**
+     * Busca películas por género con paginación
+     * 
+     * @param genero Género a buscar (ej: "Action", "Drama")
+     * @param page Número de página (default: 0)
+     * @param size Tamaño de página (default: 10)
+     * @return Respuesta paginada con películas del género especificado
+     * 
+     * Ejemplo: GET /api/peliculas/genero/paginado?genero=Action&page=0&size=10
+     */
+    @GetMapping("/genero/paginado")
+    public ResponseEntity<ApiResponse<PagedResponse<Pelicula>>> buscarPorGeneroPaginado(
+            @RequestParam String genero,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        
+        log.info("Buscando películas por género paginado - Género: {}, Page: {}, Size: {}", genero, page, size);
+        
+        Page<Pelicula> peliculasPage = peliculaService.buscarPorGeneroPaginado(genero, page, size);
+        PagedResponse<Pelicula> pagedResponse = PaginationUtils.toPagedResponse(peliculasPage);
+        
+        return ResponseEntity.ok(
+            ApiResponse.success("Películas del género '" + genero + "' obtenidas exitosamente", pagedResponse)
+        );
+    }
+
+    /**
+     * Busca películas por título con paginación
+     * 
+     * @param titulo Título o parte del título a buscar
+     * @param page Número de página (default: 0)
+     * @param size Tamaño de página (default: 10)
+     * @return Respuesta paginada con películas que coinciden
+     * 
+     * Ejemplo: GET /api/peliculas/titulo/paginado?titulo=Spider&page=0&size=10
+     */
+    @GetMapping("/titulo/paginado")
+    public ResponseEntity<ApiResponse<PagedResponse<Pelicula>>> buscarPorTituloPaginado(
+            @RequestParam String titulo,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        
+        log.info("Buscando películas por título paginado - Título: {}, Page: {}, Size: {}", titulo, page, size);
+        
+        Page<Pelicula> peliculasPage = peliculaService.buscarPorTituloPaginado(titulo, page, size);
+        PagedResponse<Pelicula> pagedResponse = PaginationUtils.toPagedResponse(peliculasPage);
+        
+        return ResponseEntity.ok(
+            ApiResponse.success("Películas con título '" + titulo + "' obtenidas exitosamente", pagedResponse)
+        );
+    }
+
+    // ========== ENDPOINTS NO PAGINADOS (LEGACY - MANTENER COMPATIBILIDAD) ==========
     
     @GetMapping("/activas")
-    public List<Pelicula> obtenerPeliculasActivas() {
-        log.info("📋 Obteniendo películas activas");
-        return peliculaService.obtenerPeliculasActivas();
+    public ResponseEntity<ApiResponse<List<Pelicula>>> obtenerPeliculasActivas() {
+        log.info("Obteniendo películas activas");
+        List<Pelicula> peliculas = peliculaService.obtenerPeliculasActivas();
+        return ResponseEntity.ok(
+            ApiResponse.success("Películas activas obtenidas exitosamente", peliculas)
+        );
     }
 
     @GetMapping("/populares")
-    public List<Pelicula> obtenerPorPopularidad() {
-        log.info("⭐ Obteniendo películas por popularidad");
-        return peliculaService.obtenerPeliculasPorPopularidad();
+    public ResponseEntity<ApiResponse<List<Pelicula>>> obtenerPorPopularidad() {
+        log.info("Obteniendo películas por popularidad");
+        List<Pelicula> peliculas = peliculaService.obtenerPeliculasPorPopularidad();
+        return ResponseEntity.ok(
+            ApiResponse.success("Películas populares obtenidas exitosamente", peliculas)
+        );
     }
 
     @GetMapping("/mejor-valoradas")
-    public List<Pelicula> obtenerPorVoto() {
-        log.info("🏆 Obteniendo películas mejor valoradas");
-        return peliculaService.obtenerPeliculasPorVoto();
+    public ResponseEntity<ApiResponse<List<Pelicula>>> obtenerPorVoto() {
+        log.info("Obteniendo películas mejor valoradas");
+        List<Pelicula> peliculas = peliculaService.obtenerPeliculasPorVoto();
+        return ResponseEntity.ok(
+            ApiResponse.success("Películas mejor valoradas obtenidas exitosamente", peliculas)
+        );
     }
 
     @GetMapping("/genero/{genero}")
-    public List<Pelicula> buscarPorGenero(@PathVariable String genero) {
-        log.info("🎭 Buscando películas por género: {}", genero);
-        return peliculaService.buscarPorGenero(genero);
+    public ResponseEntity<ApiResponse<List<Pelicula>>> buscarPorGenero(@PathVariable String genero) {
+        log.info("Buscando películas por género: {}", genero);
+        List<Pelicula> peliculas = peliculaService.buscarPorGenero(genero);
+        return ResponseEntity.ok(
+            ApiResponse.success("Películas del género '" + genero + "' obtenidas exitosamente", peliculas)
+        );
     }
 
     @GetMapping("/titulo/{titulo}")
-    public List<Pelicula> buscarPorTitulo(@PathVariable String titulo) {
-        log.info("🔍 Buscando películas por título: {}", titulo);
-        return peliculaService.buscarPorTitulo(titulo);
+    public ResponseEntity<ApiResponse<List<Pelicula>>> buscarPorTitulo(@PathVariable String titulo) {
+        log.info("Buscando películas por título: {}", titulo);
+        List<Pelicula> peliculas = peliculaService.buscarPorTitulo(titulo);
+        return ResponseEntity.ok(
+            ApiResponse.success("Películas con título '" + titulo + "' obtenidas exitosamente", peliculas)
+        );
     }
 
     @GetMapping("/clasificacion/{clasificacion}")
-    public List<Pelicula> buscarPorClasificacion(@PathVariable String clasificacion) {
-        log.info("🎬 Buscando películas por clasificación: {}", clasificacion);
-        return peliculaService.buscarPorClasificacion(clasificacion);
+    public ResponseEntity<ApiResponse<List<Pelicula>>> buscarPorClasificacion(@PathVariable String clasificacion) {
+        log.info("Buscando películas por clasificación: {}", clasificacion);
+        List<Pelicula> peliculas = peliculaService.buscarPorClasificacion(clasificacion);
+        return ResponseEntity.ok(
+            ApiResponse.success("Películas con clasificación '" + clasificacion + "' obtenidas exitosamente", peliculas)
+        );
     }
 
     @GetMapping("/tmdb/{tmdbId}")
-    public ResponseEntity<Pelicula> obtenerPorTmdbId(@PathVariable Long tmdbId) {
-        log.info("🆔 Buscando película por TMDb ID: {}", tmdbId);
-        return peliculaService.obtenerPorTmdbId(tmdbId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<ApiResponse<Pelicula>> obtenerPorTmdbId(@PathVariable Long tmdbId) {
+        log.info("Buscando película por TMDb ID: {}", tmdbId);
+        Pelicula pelicula = peliculaService.obtenerPorTmdbId(tmdbId)
+                .orElseThrow(() -> new ResourceNotFoundException("Pelicula", "tmdbId", tmdbId));
+        
+        return ResponseEntity.ok(
+            ApiResponse.success("Película obtenida exitosamente", pelicula)
+        );
     }
 
-    // ========== CRUD Básico (van después de los específicos) ==========
+    // ========== CRUD BÁSICO CON VALIDACIONES ==========
 
+    /**
+     * Obtiene todas las películas sin paginación
+     * NOTA: Para grandes volúmenes, usar /paginadas
+     */
     @GetMapping
-    public List<Pelicula> obtenerTodasLasPeliculas() {
-        log.info("📚 Obteniendo todas las películas");
-        return peliculaService.obtenerTodasLasPeliculas();
+    public ResponseEntity<ApiResponse<List<Pelicula>>> obtenerTodasLasPeliculas() {
+        log.info("Obteniendo todas las películas");
+        List<Pelicula> peliculas = peliculaService.obtenerTodasLasPeliculas();
+        return ResponseEntity.ok(
+            ApiResponse.success("Películas obtenidas exitosamente", peliculas)
+        );
     }
 
+    /**
+     * Obtiene una película específica por su ID
+     * 
+     * @param id ID de la película
+     * @return Película encontrada
+     * @throws ResourceNotFoundException si no existe
+     */
     @GetMapping("/{id}")
-    public ResponseEntity<Pelicula> obtenerPeliculaPorId(@PathVariable Long id) {
-        log.info("🔎 Buscando película por ID: {}", id);
-        return peliculaService.obtenerPeliculaPorId(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<ApiResponse<Pelicula>> obtenerPeliculaPorId(@PathVariable Long id) {
+        log.info("Buscando película por ID: {}", id);
+        Pelicula pelicula = peliculaService.obtenerPeliculaPorId(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Pelicula", "id", id));
+        
+        return ResponseEntity.ok(
+            ApiResponse.success("Película obtenida exitosamente", pelicula)
+        );
     }
 
+    /**
+     * Crea una nueva película
+     * NOTA: Validación automática con @Valid
+     * 
+     * @param pelicula Datos de la película a crear
+     * @return Película creada con ID asignado
+     */
     @PostMapping
-    public Pelicula crearPelicula(@RequestBody Pelicula pelicula) {
-        log.info("➕ Creando nueva película: {}", pelicula.getTitulo());
-        return peliculaService.crearPelicula(pelicula);
+    public ResponseEntity<ApiResponse<Pelicula>> crearPelicula(@Valid @RequestBody Pelicula pelicula) {
+        log.info("Creando nueva película: {}", pelicula.getTitulo());
+        Pelicula nuevaPelicula = peliculaService.crearPelicula(pelicula);
+        
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Película creada exitosamente", nuevaPelicula));
     }
 
+    /**
+     * Actualiza una película existente
+     * 
+     * @param id ID de la película a actualizar
+     * @param pelicula Datos actualizados
+     * @return Película actualizada
+     * @throws ResourceNotFoundException si no existe
+     */
     @PutMapping("/{id}")
-    public ResponseEntity<Pelicula> actualizarPelicula(@PathVariable Long id, @RequestBody Pelicula pelicula) {
-        try {
-            log.info("✏️ Actualizando película ID: {}", id);
-            return ResponseEntity.ok(peliculaService.actualizarPelicula(id, pelicula));
-        } catch (RuntimeException e) {
-            log.error("❌ Error al actualizar película ID {}: {}", id, e.getMessage());
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<ApiResponse<Pelicula>> actualizarPelicula(
+            @PathVariable Long id, 
+            @Valid @RequestBody Pelicula pelicula) {
+        
+        log.info("Actualizando película ID: {}", id);
+        Pelicula peliculaActualizada = peliculaService.actualizarPelicula(id, pelicula);
+        
+        return ResponseEntity.ok(
+            ApiResponse.success("Película actualizada exitosamente", peliculaActualizada)
+        );
     }
 
+    /**
+     * Elimina una película (soft delete)
+     * 
+     * @param id ID de la película a eliminar
+     * @return 204 No Content
+     */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminarPelicula(@PathVariable Long id) {
-        log.info("🗑️ Eliminando película ID: {}", id);
+    public ResponseEntity<ApiResponse<String>> eliminarPelicula(@PathVariable Long id) {
+        log.info("Eliminando película ID: {}", id);
         peliculaService.eliminarPelicula(id);
-        return ResponseEntity.noContent().build();
+        
+        return ResponseEntity.ok(
+            ApiResponse.success("Película eliminada exitosamente")
+        );
     }
 
-    // ========== Sincronización con TMDb API ==========
+    // ========== SINCRONIZACIÓN CON TMDb API ==========
 
     /**
      * Sincroniza películas desde TMDb API (Now Playing)
@@ -116,32 +270,27 @@ public class PeliculaController {
      * Ejemplo: POST /api/peliculas/sync?paginas=2
      */
     @PostMapping("/sync")
-    public ResponseEntity<SyncResponseDTO> sincronizarPeliculas(
+    public ResponseEntity<ApiResponse<SyncResponseDTO>> sincronizarPeliculas(
             @RequestParam(defaultValue = "1") Integer paginas) {
-        try {
-            log.info("🔄 Iniciando sincronización de películas (páginas: {})", paginas);
-            SyncResponseDTO resultado = peliculaService.sincronizarPeliculasDesdeAPI(paginas);
-            return ResponseEntity.ok(resultado);
-        } catch (Exception e) {
-            log.error("❌ Error en sincronización: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(SyncResponseDTO.builder()
-                            .mensaje("Error al sincronizar películas: " + e.getMessage())
-                            .build());
-        }
+        
+        log.info("Iniciando sincronización de películas (páginas: {})", paginas);
+        SyncResponseDTO resultado = peliculaService.sincronizarPeliculasDesdeAPI(paginas);
+        
+        return ResponseEntity.ok(
+            ApiResponse.success("Sincronización completada exitosamente", resultado)
+        );
     }
 
     /**
-     * Endpoint de prueba de conexión con TMDb
+     * Endpoint de prueba de conexión con TMDb API
+     * 
+     * @return Mensaje de estado de la conexión
      */
     @GetMapping("/test-connection")
-    public ResponseEntity<String> testTMDbConnection() {
-        try {
-            peliculaService.sincronizarPeliculasDesdeAPI(1);
-            return ResponseEntity.ok("✅ Conexión exitosa con TMDb API");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body("❌ Error de conexión: " + e.getMessage());
-        }
+    public ResponseEntity<ApiResponse<String>> testTMDbConnection() {
+        peliculaService.sincronizarPeliculasDesdeAPI(1);
+        return ResponseEntity.ok(
+            ApiResponse.success("Conexión exitosa con TMDb API", "OK")
+        );
     }
 }

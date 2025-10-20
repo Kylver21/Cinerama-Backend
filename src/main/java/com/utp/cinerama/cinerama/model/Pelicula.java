@@ -2,6 +2,7 @@ package com.utp.cinerama.cinerama.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -29,18 +30,24 @@ public class Pelicula {
     private Long tmdbId;
 
     // Campos originales (ahora opcionales para flexibilidad)
+    @NotBlank(message = "El título es obligatorio")
+    @Size(min = 1, max = 255, message = "El título debe tener entre 1 y 255 caracteres")
     @Column(nullable = false)
     private String titulo;
 
+    @Size(max = 255, message = "El título original no puede exceder 255 caracteres")
     @Column(name = "titulo_original")
     private String tituloOriginal;
 
+    @Size(max = 10, message = "El idioma original no puede exceder 10 caracteres")
     @Column(name = "idioma_original", length = 10)
     private String idiomaOriginal;
 
     @Column(columnDefinition = "TEXT")
     private String genero; // Guarda géneros concatenados: "Acción, Comedia"
 
+    @Min(value = 1, message = "La duración debe ser al menos 1 minuto")
+    @Max(value = 600, message = "La duración no puede exceder 600 minutos")
     @Column
     private Integer duracion; // Duración en minutos (puede venir vacío de TMDb)
 
@@ -54,6 +61,7 @@ public class Pelicula {
     private String resumen; // Campo "overview" directo de TMDb
 
     // Nuevos campos de TMDb
+    @DecimalMin(value = "0.0", message = "La popularidad no puede ser negativa")
     @Column
     private Double popularidad;
 
@@ -63,12 +71,16 @@ public class Pelicula {
     @Column(name = "backdrop_url")
     private String backdropUrl; // URL del backdrop
 
+    @PastOrPresent(message = "La fecha de estreno no puede ser futura")
     @Column(name = "fecha_estreno")
     private LocalDate fechaEstreno;
 
+    @DecimalMin(value = "0.0", message = "El voto promedio no puede ser negativo")
+    @DecimalMax(value = "10.0", message = "El voto promedio no puede exceder 10.0")
     @Column(name = "voto_promedio")
     private Double votoPromedio;
 
+    @Min(value = 0, message = "El total de votos no puede ser negativo")
     @Column(name = "total_votos")
     private Integer totalVotos;
 

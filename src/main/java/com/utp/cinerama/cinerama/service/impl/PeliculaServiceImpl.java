@@ -8,6 +8,10 @@ import com.utp.cinerama.cinerama.service.PeliculaService;
 import com.utp.cinerama.cinerama.service.TMDbService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -92,6 +96,40 @@ public class PeliculaServiceImpl implements PeliculaService {
     @Override
     public Optional<Pelicula> obtenerPorTmdbId(Long tmdbId) {
         return peliculaRepository.findByTmdbId(tmdbId);
+    }
+
+    // ========== METODOS CON PAGINACION ==========
+
+    /**
+     * Obtiene peliculas con paginacion
+     * 
+     * @param page Numero de pagina (empieza en 0)
+     * @param size Cantidad de elementos por pagina
+     * @param sortBy Campo por el cual ordenar
+     * @return Page con las peliculas
+     */
+    @Override
+    public Page<Pelicula> obtenerPeliculasPaginadas(int page, int size, String sortBy) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).descending());
+        return peliculaRepository.findAll(pageable);
+    }
+
+    /**
+     * Busca peliculas por genero con paginacion
+     */
+    @Override
+    public Page<Pelicula> buscarPorGeneroPaginado(String genero, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return peliculaRepository.findByGeneroContainingIgnoreCase(genero, pageable);
+    }
+
+    /**
+     * Busca peliculas por titulo con paginacion
+     */
+    @Override
+    public Page<Pelicula> buscarPorTituloPaginado(String titulo, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return peliculaRepository.findByTituloContainingIgnoreCase(titulo, pageable);
     }
 
     /**
