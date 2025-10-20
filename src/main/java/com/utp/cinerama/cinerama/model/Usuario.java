@@ -12,10 +12,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Entidad Usuario para autenticación y autorización
- * Implementa UserDetails de Spring Security
- */
 @Entity
 @Table(name = "usuarios",
     indexes = {
@@ -42,7 +38,7 @@ public class Usuario implements UserDetails {
     private String email;
 
     @Column(nullable = false, length = 255)
-    private String password; // Almacenado con BCrypt
+    private String password; 
 
     @Column(nullable = false)
     @Builder.Default
@@ -85,23 +81,14 @@ public class Usuario implements UserDetails {
         fechaCreacion = LocalDateTime.now();
     }
 
-    // ========== Implementación de UserDetails ==========
+    // ========== Implementacion de UserDetails ==========
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        Set<GrantedAuthority> authorities = new HashSet<>();
-        
-        // Agregar roles
-        for (Rol rol : roles) {
-            authorities.add(new SimpleGrantedAuthority(rol.getNombre()));
-            
-            // Agregar permisos del rol
-            for (Permiso permiso : rol.getPermisos()) {
-                authorities.add(new SimpleGrantedAuthority(permiso.getNombre()));
-            }
-        }
-        
-        return authorities;
+        // Convertir roles a GrantedAuthority
+        return roles.stream()
+            .map(rol -> new SimpleGrantedAuthority(rol.getNombre()))
+            .collect(Collectors.toSet());
     }
 
     @Override
@@ -134,44 +121,26 @@ public class Usuario implements UserDetails {
         return activo;
     }
 
-    // ========== Métodos auxiliares ==========
-
-    /**
-     * Agregar un rol al usuario
-     */
+    
     public void agregarRol(Rol rol) {
         this.roles.add(rol);
         rol.getUsuarios().add(this);
     }
 
-    /**
-     * Remover un rol del usuario
-     */
     public void removerRol(Rol rol) {
         this.roles.remove(rol);
         rol.getUsuarios().remove(this);
     }
 
     /**
-     * Verificar si tiene un rol específico
+     * Verificar si tiene un rol especifico
      */
     public boolean tieneRol(String nombreRol) {
         return roles.stream()
             .anyMatch(rol -> rol.getNombre().equals(nombreRol));
     }
 
-    /**
-     * Verificar si tiene un permiso específico
-     */
-    public boolean tienePermiso(String nombrePermiso) {
-        return roles.stream()
-            .flatMap(rol -> rol.getPermisos().stream())
-            .anyMatch(permiso -> permiso.getNombre().equals(nombrePermiso));
-    }
 
-    /**
-     * Obtener lista de nombres de roles
-     */
     public Set<String> getNombresRoles() {
         return roles.stream()
             .map(Rol::getNombre)

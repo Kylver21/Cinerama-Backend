@@ -40,12 +40,12 @@ public class AuthController {
     private final JwtUtil jwtUtil;
 
     /**
-     * 📝 POST /api/auth/register
+     * POST /api/auth/register
      * Registrar un nuevo usuario
      */
     @PostMapping("/register")
     public ResponseEntity<MensajeDTO> registrar(@Valid @RequestBody RegistroDTO registroDTO) {
-        log.info("📝 Solicitud de registro para username: {}", registroDTO.getUsername());
+        log.info("Solicitud de registro para username: {}", registroDTO.getUsername());
 
         Usuario usuario = usuarioService.registrar(registroDTO);
 
@@ -63,7 +63,7 @@ public class AuthController {
             @RequestParam(required = false, defaultValue = "false") boolean rememberMe,
             HttpServletResponse response) {
 
-        log.info("🔐 Intento de login: {}", loginDTO.getUsername());
+        log.info("Intento de login: {}", loginDTO.getUsername());
 
         try {
             // 1. Autenticar con Spring Security (BCrypt automático)
@@ -74,13 +74,13 @@ public class AuthController {
                     )
             );
 
-            log.info("✅ Autenticación exitosa para: {}", loginDTO.getUsername());
+            log.info("Autenticacion exitosa para: {}", loginDTO.getUsername());
 
             // 2. Cargar detalles del usuario
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             Usuario usuario = userDetailsService.obtenerUsuarioCompleto(userDetails.getUsername());
 
-            // 3. Extraer SOLO roles (prefijo ROLE_), no permisos
+            // 3. Extraer SOLO roles (prefijo ROLE_)
             List<String> roles = userDetails.getAuthorities().stream()
                     .map(a -> a.getAuthority())
                     .filter(name -> name.startsWith("ROLE_"))
@@ -90,17 +90,17 @@ public class AuthController {
             String rol = roles.isEmpty() ? "" : roles.get(0);
             String jwt = jwtUtil.generateToken(usuario.getUsername(), rol);
 
-            log.info("🎫 Token JWT generado para: {} con roles: {}", usuario.getUsername(), roles);
+            log.info("Token JWT generado para: {} con roles: {}", usuario.getUsername(), roles);
 
             // 5. Configurar cookie si rememberMe está activo
             if (rememberMe) {
                 Cookie cookie = new Cookie("jwt", jwt);
                 cookie.setHttpOnly(true); // No accesible por JavaScript (seguridad)
                 cookie.setPath("/");      // Disponible en toda la app
-                cookie.setMaxAge(60 * 60 * 24 * 7); // 7 días
-                // cookie.setSecure(true); // DESCOMENTAR EN PRODUCCIÓN (HTTPS)
+                cookie.setMaxAge(60 * 60 * 24 * 7); // 7 dias
+                // cookie.setSecure(true); // DESCOMENTAR EN PRODUCCION (HTTPS)
                 response.addCookie(cookie);
-                log.info("🍪 Cookie JWT configurada con remember me");
+                log.info("Cookie JWT configurada con remember me");
             }
 
             // 6. Construir respuesta con toda la información
@@ -120,15 +120,15 @@ public class AuthController {
             return ResponseEntity.ok(loginResponse);
 
         } catch (BadCredentialsException e) {
-            log.error("❌ Credenciales inválidas para: {}", loginDTO.getUsername());
+            log.error("Credenciales invalidas para: {}", loginDTO.getUsername());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(MensajeDTO.builder()
-                            .mensaje("Credenciales inválidas. Verifica tu usuario y contraseña.")
+                            .mensaje("Credenciales invalidas. Verifica tu usuario y contrasena.")
                             .exitoso(false)
                             .build());
 
         } catch (Exception e) {
-            log.error("❌ Error en login: {}", e.getMessage(), e);
+            log.error("Error en login: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(MensajeDTO.builder()
                             .mensaje("Error de autenticación: " + e.getMessage())
@@ -142,7 +142,7 @@ public class AuthController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
 
-        log.info("👤 Obteniendo información del usuario: {}", username);
+        log.info("Obteniendo informacion del usuario: {}", username);
 
         Usuario usuario = usuarioService.obtenerPorUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
@@ -175,7 +175,7 @@ public class AuthController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
 
-        log.info("🔑 Cambio de contraseña para usuario: {}", username);
+        log.info("Cambio de contrasena para usuario: {}", username);
 
         Usuario usuario = usuarioService.obtenerPorUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
@@ -206,10 +206,10 @@ public class AuthController {
         // Limpiar contexto de seguridad
         SecurityContextHolder.clearContext();
 
-        log.info("👋 Sesión cerrada, cookie eliminada");
+        log.info("Sesion cerrada, cookie eliminada");
 
         MensajeDTO respuesta = MensajeDTO.builder()
-                .mensaje("Sesión cerrada exitosamente")
+                .mensaje("Sesion cerrada exitosamente")
                 .exitoso(true)
                 .build();
 
@@ -242,13 +242,13 @@ public class AuthController {
                         .valido(true)
                         .username(username)
                         .roles(roles)
-                        .mensaje("Token válido")
+                        .mensaje("Token valido")
                         .build());
             } else {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(TokenValidationDTO.builder()
                                 .valido(false)
-                                .mensaje("Token inválido o expirado")
+                                .mensaje("Token invalido o expirado")
                                 .build());
             }
 
@@ -279,7 +279,7 @@ public class AuthController {
             if (!jwtUtil.validateToken(oldToken)) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(MensajeDTO.builder()
-                                .mensaje("Token inválido o expirado")
+                                .mensaje("Token invalido o expirado")
                                 .exitoso(false)
                                 .build());
             }
@@ -297,7 +297,7 @@ public class AuthController {
             // Generar nuevo token
             String newToken = jwtUtil.generateToken(username, rol);
 
-            log.info("🔄 Token refrescado para: {}", username);
+            log.info("Token refrescado para: {}", username);
 
             return ResponseEntity.ok(LoginResponseDTO.builder()
                     .token(newToken)
@@ -309,7 +309,7 @@ public class AuthController {
                     .build());
 
         } catch (Exception e) {
-            log.error("❌ Error al refrescar token: {}", e.getMessage());
+            log.error("Error al refrescar token: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(MensajeDTO.builder()
                             .mensaje("Error al refrescar token")
@@ -319,8 +319,8 @@ public class AuthController {
     }
 
     /**
-     * ✅ GET /api/auth/validar-username/{username}
-     * Verificar si un username está disponible
+     * GET /api/auth/validar-username/{username}
+     * Verificar si un username esta disponible
      */
     @GetMapping("/validar-username/{username}")
     public ResponseEntity<DisponibilidadDTO> validarUsername(@PathVariable String username) {
@@ -328,15 +328,15 @@ public class AuthController {
 
         DisponibilidadDTO respuesta = DisponibilidadDTO.builder()
                 .disponible(disponible)
-                .mensaje(disponible ? "Username disponible" : "Username ya está en uso")
+                .mensaje(disponible ? "Username disponible" : "Username ya esta en uso")
                 .build();
 
         return ResponseEntity.ok(respuesta);
     }
 
     /**
-     * ✅ GET /api/auth/validar-email/{email}
-     * Verificar si un email está disponible
+     * GET /api/auth/validar-email/{email}
+     * Verificar si un email esta disponible
      */
     @GetMapping("/validar-email/{email}")
     public ResponseEntity<DisponibilidadDTO> validarEmail(@PathVariable String email) {
@@ -344,7 +344,7 @@ public class AuthController {
 
         DisponibilidadDTO respuesta = DisponibilidadDTO.builder()
                 .disponible(disponible)
-                .mensaje(disponible ? "Email disponible" : "Email ya está registrado")
+                .mensaje(disponible ? "Email disponible" : "Email ya esta registrado")
                 .build();
 
         return ResponseEntity.ok(respuesta);

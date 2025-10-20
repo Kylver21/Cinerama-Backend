@@ -23,53 +23,53 @@ public class TMDbService {
     private final TMDbConfig tmdbConfig;
 
     /**
-     * Obtiene películas en cartelera (now_playing)
-     * @param page Número de página (opcional, default: 1)
-     * @return Lista de películas desde TMDb
+     * Obtiene peliculas en cartelera (now_playing)
+     * @param page Numero de pagina (opcional, default: 1)
+     * @return Lista de peliculas desde TMDb
      */
     public List<TMDbMovieDTO> getNowPlayingMovies(Integer page) {
         try {
             String url = buildUrl(tmdbConfig.getNowPlayingUrl(), page);
-            log.info("🎬 Consultando TMDb API: {}", url);
+            log.info("Consultando TMDb API: {}", url);
             
             TMDbResponseDTO response = restTemplate.getForObject(url, TMDbResponseDTO.class);
             
             if (response != null && response.getResults() != null) {
-                log.info("✅ Se obtuvieron {} películas de TMDb (página {})", 
+                log.info("Se obtuvieron {} peliculas de TMDb (pagina {})", 
                     response.getResults().size(), page != null ? page : 1);
                 return response.getResults();
             }
             
-            log.warn("⚠️ La respuesta de TMDb está vacía");
+            log.warn("La respuesta de TMDb esta vacia");
             return List.of();
             
         } catch (Exception e) {
-            log.error("❌ Error al consultar TMDb API: {}", e.getMessage());
+            log.error("Error al consultar TMDb API: {}", e.getMessage());
             throw new RuntimeException("Error al obtener películas desde TMDb: " + e.getMessage(), e);
         }
     }
 
     /**
-     * Obtiene películas populares
-     * @param page Número de página
-     * @return Lista de películas populares
+     * Obtiene peliculas populares
+     * @param page Numero de pagina
+     * @return Lista de peliculas populares
      */
     public List<TMDbMovieDTO> getPopularMovies(Integer page) {
         try {
             String url = buildUrl(tmdbConfig.getPopularUrl(), page);
-            log.info("🌟 Consultando películas populares en TMDb: {}", url);
+            log.info("Consultando peliculas populares en TMDb: {}", url);
             
             TMDbResponseDTO response = restTemplate.getForObject(url, TMDbResponseDTO.class);
             
             if (response != null && response.getResults() != null) {
-                log.info("✅ Se obtuvieron {} películas populares de TMDb", response.getResults().size());
+                log.info("Se obtuvieron {} peliculas populares de TMDb", response.getResults().size());
                 return response.getResults();
             }
             
             return List.of();
             
         } catch (Exception e) {
-            log.error("❌ Error al consultar películas populares: {}", e.getMessage());
+            log.error("Error al consultar peliculas populares: {}", e.getMessage());
             throw new RuntimeException("Error al obtener películas populares: " + e.getMessage(), e);
         }
     }

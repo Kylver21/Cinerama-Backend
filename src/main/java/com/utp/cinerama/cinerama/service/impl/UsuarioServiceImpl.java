@@ -44,7 +44,7 @@ public class UsuarioServiceImpl implements UsuarioService {
     @Override
     @Transactional
     public Usuario registrar(RegistroDTO registroDTO) {
-        log.info("📝 Registrando nuevo usuario: {}", registroDTO.getUsername());
+        log.info("Registrando nuevo usuario: {}", registroDTO.getUsername());
 
         // 1. Validar que el username no exista
         if (usuarioRepository.existsByUsername(registroDTO.getUsername())) {
@@ -75,7 +75,7 @@ public class UsuarioServiceImpl implements UsuarioService {
 
         // 5. Guardar usuario
         usuario = usuarioRepository.save(usuario);
-        log.info("✅ Usuario creado con ID: {}", usuario.getId());
+        log.info("Usuario creado con ID: {}", usuario.getId());
 
         // 6. Crear cliente asociado
         Cliente cliente = Cliente.builder()
@@ -91,7 +91,7 @@ public class UsuarioServiceImpl implements UsuarioService {
                 .build();
 
         clienteRepository.save(cliente);
-        log.info("✅ Cliente asociado creado con ID: {}", cliente.getId());
+        log.info("Cliente asociado creado con ID: {}", cliente.getId());
 
         return usuario;
     }
@@ -99,7 +99,7 @@ public class UsuarioServiceImpl implements UsuarioService {
     @Override
     @Transactional
     public LoginResponseDTO login(LoginDTO loginDTO) {
-        log.info("🔐 Intento de login: {}", loginDTO.getUsername());
+        log.info("Intento de login: {}", loginDTO.getUsername());
 
         try {
             // 1. Autenticar con Spring Security
@@ -147,11 +147,11 @@ public class UsuarioServiceImpl implements UsuarioService {
                 response.setNombreCompleto(cliente.getNombre() + " " + cliente.getApellido());
             }
 
-            log.info("✅ Login exitoso para: {}", usuario.getUsername());
+            log.info("Login exitoso para: {}", usuario.getUsername());
             return response;
 
         } catch (Exception e) {
-            log.error("❌ Error en login: {}", e.getMessage());
+            log.error("Error en login: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciales inválidas");
         }
     }
@@ -193,7 +193,7 @@ public class UsuarioServiceImpl implements UsuarioService {
     @Override
     @Transactional
     public void asignarRol(Long usuarioId, String nombreRol) {
-        log.info("👤 Asignando rol {} al usuario {}", nombreRol, usuarioId);
+        log.info("Asignando rol {} al usuario {}", nombreRol, usuarioId);
 
         Usuario usuario = usuarioRepository.findById(usuarioId)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -204,13 +204,13 @@ public class UsuarioServiceImpl implements UsuarioService {
         usuario.agregarRol(rol);
         usuarioRepository.save(usuario);
 
-        log.info("✅ Rol asignado exitosamente");
+        log.info("Rol asignado exitosamente");
     }
 
     @Override
     @Transactional
     public void removerRol(Long usuarioId, String nombreRol) {
-        log.info("👤 Removiendo rol {} del usuario {}", nombreRol, usuarioId);
+        log.info("Removiendo rol {} del usuario {}", nombreRol, usuarioId);
 
         Usuario usuario = usuarioRepository.findById(usuarioId)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -221,13 +221,13 @@ public class UsuarioServiceImpl implements UsuarioService {
         usuario.removerRol(rol);
         usuarioRepository.save(usuario);
 
-        log.info("✅ Rol removido exitosamente");
+        log.info("Rol removido exitosamente");
     }
 
     @Override
     @Transactional
     public void cambiarPassword(Long usuarioId, String passwordActual, String passwordNueva) {
-        log.info("🔑 Cambiando contraseña para usuario {}", usuarioId);
+        log.info("Cambiando contrasena para usuario {}", usuarioId);
 
         Usuario usuario = usuarioRepository.findById(usuarioId)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -241,13 +241,13 @@ public class UsuarioServiceImpl implements UsuarioService {
         usuario.setPassword(passwordEncoder.encode(passwordNueva));
         usuarioRepository.save(usuario);
 
-        log.info("✅ Contraseña actualizada exitosamente");
+        log.info("Contrasena actualizada exitosamente");
     }
 
     @Override
     @Transactional
     public void cambiarEstado(Long usuarioId, Boolean activo) {
-        log.info("🔄 Cambiando estado de usuario {} a {}", usuarioId, activo ? "activo" : "inactivo");
+        log.info("Cambiando estado de usuario {} a {}", usuarioId, activo ? "activo" : "inactivo");
 
         Usuario usuario = usuarioRepository.findById(usuarioId)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -255,7 +255,7 @@ public class UsuarioServiceImpl implements UsuarioService {
         usuario.setActivo(activo);
         usuarioRepository.save(usuario);
 
-        log.info("✅ Estado actualizado exitosamente");
+        log.info("Estado actualizado exitosamente");
     }
 
     @Override
