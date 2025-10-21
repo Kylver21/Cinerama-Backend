@@ -1,8 +1,13 @@
 package com.utp.cinerama.cinerama.controller;
 
+import com.utp.cinerama.cinerama.dto.ApiResponse;
+import com.utp.cinerama.cinerama.exception.ResourceNotFoundException;
 import com.utp.cinerama.cinerama.model.Cliente;
 import com.utp.cinerama.cinerama.service.ClienteService;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,40 +15,48 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/clientes")
+@RequiredArgsConstructor
+@Slf4j
 public class ClienteController {
 
-    @Autowired
-    private ClienteService clienteService;
+    private final ClienteService clienteService;
 
     @GetMapping
-    public List<Cliente> obtenerTodosLosClientes() {
-        return clienteService.obtenerTodosLosClientes();
+    public ResponseEntity<ApiResponse<List<Cliente>>> obtenerTodosLosClientes() {
+        log.info("Obteniendo todos los clientes");
+        List<Cliente> clientes = clienteService.obtenerTodosLosClientes();
+        return ResponseEntity.ok(ApiResponse.success("Clientes obtenidos exitosamente", clientes));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Cliente> obtenerClientePorId(@PathVariable Long id) {
-        return clienteService.obtenerClientePorId(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<ApiResponse<Cliente>> obtenerClientePorId(@PathVariable Long id) {
+        log.info("Buscando cliente con ID: {}", id);
+        Cliente cliente = clienteService.obtenerClientePorId(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con ID: " + id));
+        return ResponseEntity.ok(ApiResponse.success("Cliente obtenido exitosamente", cliente));
     }
 
     @PostMapping
-    public Cliente crearCliente(@RequestBody Cliente cliente) {
-        return clienteService.crearCliente(cliente);
+    public ResponseEntity<ApiResponse<Cliente>> crearCliente(@Valid @RequestBody Cliente cliente) {
+        log.info("Creando nuevo cliente: {}", cliente.getNombre());
+        Cliente nuevoCliente = clienteService.crearCliente(cliente);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Cliente creado exitosamente", nuevoCliente));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Cliente> actualizarCliente(@PathVariable Long id, @RequestBody Cliente cliente) {
-        try {
-            return ResponseEntity.ok(clienteService.actualizarCliente(id, cliente));
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<ApiResponse<Cliente>> actualizarCliente(
+            @PathVariable Long id, 
+            @Valid @RequestBody Cliente cliente) {
+        log.info("Actualizando cliente con ID: {}", id);
+        Cliente clienteActualizado = clienteService.actualizarCliente(id, cliente);
+        return ResponseEntity.ok(ApiResponse.success("Cliente actualizado exitosamente", clienteActualizado));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminarCliente(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> eliminarCliente(@PathVariable Long id) {
+        log.info("Eliminando cliente con ID: {}", id);
         clienteService.eliminarCliente(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(ApiResponse.success("Cliente eliminado exitosamente", null));
     }
 }

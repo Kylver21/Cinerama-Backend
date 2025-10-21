@@ -16,7 +16,6 @@ import java.util.Optional;
 
 @Repository
 public interface AsientoRepository extends JpaRepository<Asiento, Long> {
-
     /**
      * 🔒 Obtiene un asiento con bloqueo pesimista para evitar condiciones de carrera
      * Uso: Durante reserva simultánea de asientos
@@ -24,7 +23,6 @@ public interface AsientoRepository extends JpaRepository<Asiento, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT a FROM Asiento a WHERE a.id = :id")
     Optional<Asiento> findByIdWithLock(@Param("id") Long id);
-
     /**
      * 🔒 Busca asiento por función, fila y número con bloqueo
      */
@@ -36,7 +34,6 @@ public interface AsientoRepository extends JpaRepository<Asiento, Long> {
             @Param("fila") String fila,
             @Param("numero") Integer numero
     );
-
     /**
      * 🗺️ Obtiene todos los asientos de una función (para mostrar mapa)
      */
