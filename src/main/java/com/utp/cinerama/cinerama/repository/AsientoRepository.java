@@ -17,14 +17,14 @@ import java.util.Optional;
 @Repository
 public interface AsientoRepository extends JpaRepository<Asiento, Long> {
     /**
-     * 🔒 Obtiene un asiento con bloqueo pesimista para evitar condiciones de carrera
+     * Obtiene un asiento con bloqueo pesimista para evitar condiciones de carrera
      * Uso: Durante reserva simultánea de asientos
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT a FROM Asiento a WHERE a.id = :id")
     Optional<Asiento> findByIdWithLock(@Param("id") Long id);
     /**
-     * 🔒 Busca asiento por función, fila y número con bloqueo
+     * Busca asiento por función, fila y número con bloqueo
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT a FROM Asiento a WHERE a.funcion.id = :funcionId " +
@@ -35,29 +35,32 @@ public interface AsientoRepository extends JpaRepository<Asiento, Long> {
             @Param("numero") Integer numero
     );
     /**
-     * 🗺️ Obtiene todos los asientos de una función (para mostrar mapa)
+     * Obtiene todos los asientos de una función (para mostrar mapa)
      */
-    List<Asiento> findByFuncionIdOrderByFilaAscNumeroAsc(Long funcionId);
+    @Query("SELECT a FROM Asiento a WHERE a.funcion.id = :funcionId ORDER BY a.fila ASC, a.numero ASC")
+    List<Asiento> findByFuncionIdOrderByFilaAscNumeroAsc(@Param("funcionId") Long funcionId);
 
     /**
-     * ✅ Obtiene asientos disponibles de una función
+     * Obtiene asientos por estado de una función
      */
-    List<Asiento> findByFuncionIdAndEstado(Long funcionId, EstadoAsiento estado);
+    @Query("SELECT a FROM Asiento a WHERE a.funcion.id = :funcionId AND a.estado = :estado")
+    List<Asiento> findByFuncionIdAndEstado(@Param("funcionId") Long funcionId, @Param("estado") EstadoAsiento estado);
 
     /**
-     * 🕐 Encuentra asientos reservados que expiraron
+     * Encuentra asientos reservados que expiraron
      */
     @Query("SELECT a FROM Asiento a WHERE a.estado = 'RESERVADO' " +
            "AND a.fechaExpiracionReserva < :fechaActual")
     List<Asiento> findAsientosReservadosExpirados(@Param("fechaActual") LocalDateTime fechaActual);
 
     /**
-     * 📊 Cuenta asientos por estado en una función
+     * Cuenta asientos por estado en una función
      */
-    long countByFuncionIdAndEstado(Long funcionId, EstadoAsiento estado);
+    @Query("SELECT COUNT(a) FROM Asiento a WHERE a.funcion.id = :funcionId AND a.estado = :estado")
+    long countByFuncionIdAndEstado(@Param("funcionId") Long funcionId, @Param("estado") EstadoAsiento estado);
 
     /**
-     * 🧹 Libera múltiples asientos expirados (usado por scheduler)
+     * Libera múltiples asientos expirados (usado por scheduler)
      */
     @Modifying
     @Query("UPDATE Asiento a SET a.estado = 'DISPONIBLE', a.reservadoPor = NULL, " +
@@ -66,12 +69,13 @@ public interface AsientoRepository extends JpaRepository<Asiento, Long> {
     int liberarAsientosExpirados(@Param("fechaActual") LocalDateTime fechaActual);
 
     /**
-     * 🎭 Verifica si existe un asiento específico
+     * Verifica si existe un asiento específico
      */
     boolean existsByFuncionIdAndFilaAndNumero(Long funcionId, String fila, Integer numero);
 
        /**
-        * 🎫 Obtiene asientos por tipo (solo NORMAL en Cinerama Chimbote)
+        * Obtiene asientos por tipo (solo NORMAL en Cinerama Chimbote)
         */
-    List<Asiento> findByFuncionIdAndTipo(Long funcionId, Asiento.TipoAsiento tipo);
+    @Query("SELECT a FROM Asiento a WHERE a.funcion.id = :funcionId AND a.tipo = :tipo")
+    List<Asiento> findByFuncionIdAndTipo(@Param("funcionId") Long funcionId, @Param("tipo") Asiento.TipoAsiento tipo);
 }

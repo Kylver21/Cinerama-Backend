@@ -12,8 +12,11 @@ import java.util.List;
 
 @Repository
 public interface FuncionRepository extends JpaRepository<Funcion, Long> {
-    List<Funcion> findByPeliculaId(Long peliculaId);
-    List<Funcion> findBySalaId(Long salaId);
+    @Query("SELECT f FROM Funcion f WHERE f.pelicula.id = :peliculaId")
+    List<Funcion> findByPeliculaId(@Param("peliculaId") Long peliculaId);
+
+    @Query("SELECT f FROM Funcion f WHERE f.sala.id = :salaId")
+    List<Funcion> findBySalaId(@Param("salaId") Long salaId);
     
     // Buscar funciones por fecha (solo la parte de fecha de fechaHora)
     @Query("SELECT f FROM Funcion f WHERE DATE(f.fechaHora) = :fecha")
