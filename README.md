@@ -1,21 +1,99 @@
-# 🎬 Cinerama - Sistema de Gestión de Cine
+# 🎬 Cinerama - Sistema de Reservas de Cine Completo
 
-Un sistema completo de gestión para cines desarrollado con **Spring Boot 3.5.5** y **MySQL**. Cinerama permite administrar clientes, películas, funciones, boletos, productos de concesión y pagos de manera eficiente.
+Sistema robusto de gestión de reservas para cines desarrollado con **Spring Boot 3.5.5**, **Java 23.0.2** y **MySQL 8.0.41**. Cinerama es una plataforma completa que permite a los administradores gestionar carteleras de películas desde TMDb, programar funciones, y a los usuarios finales reservar asientos y comprar productos de confitería de manera segura.
 
-## 🎯 **NUEVA FUNCIONALIDAD: Integración con TMDb API**
+---
 
-Cinerama ahora se integra con **The Movie Database (TMDb)** para sincronizar automáticamente información de películas en cartelera, incluyendo:
-- 🎬 Títulos y descripciones en español
-- 🖼️ Pósters y imágenes de alta calidad
-- ⭐ Valoraciones de usuarios
-- 📅 Fechas de estreno
-- 🎭 Géneros y clasificaciones
+## 🎯 Objetivo de la Aplicación
 
-📚 **Documentación de Integración TMDb:**
-- 📘 [Guía Completa de Integración](TMDB_INTEGRATION.md)
-- 🚀 [Inicio Rápido](INICIO_RAPIDO.md)
-- 🔑 [Configurar API Key](CONFIGURAR_API_KEY.md)
-- 📊 [Resumen de Implementación](RESUMEN_IMPLEMENTACION.md)
+### **Para Administradores:**
+1. **Login como ADMIN** → Autenticación segura con JWT
+2. **Explorar Catálogo TMDb** → Ver películas en cartelera, próximamente, y populares sin guardarlas
+3. **Seleccionar Películas** → Guardar solo las películas deseadas desde TMDb a la base de datos
+4. **Crear Funciones** → Asignar película + sala + horario + precio de entrada
+5. **Gestionar Salas** → Configurar salas con capacidad y tipos de asientos
+6. **Monitorear Ventas** → Ver estadísticas de ocupación y ventas
+
+### **Para Usuarios (Clientes):**
+1. **Explorar Cartelera** → Ver películas disponibles con sinopsis, póster, y calificación
+2. **Seleccionar Película** → Elegir película y ver horarios disponibles
+3. **Elegir Función** → Cada horario corresponde a una sala predeterminada
+4. **Seleccionar Asientos** → Mapa visual de asientos con disponibilidad en tiempo real
+5. **Agregar Productos (Opcional)** → Cancha, gaseosas, combos, etc.
+6. **Calcular Total** → Ver desglose de precios antes de confirmar
+7. **Simular Pago** → Confirmación de compra con método de pago
+8. **Obtener Confirmación** → Número de confirmación y detalles de la compra
+9. **Reserva Automática** → Los asientos quedan bloqueados para otros usuarios por 10 minutos
+
+---
+
+## ✨ Características Principales
+
+### 🎬 **Integración TMDb (The Movie Database)**
+- **Proxy de Exploración:** Consulta películas en cartelera, próximamente y populares sin guardarlas
+- **Selección Administrativa:** Solo el admin elige qué películas guardar en la BD
+- **Información Completa:** Sinopsis, póster, backdrop, géneros, runtime, calificación, fecha de estreno
+- **Caché Inteligente:** 10 minutos de TTL para reducir llamadas a la API
+- **Endpoints:**
+  - `GET /api/tmdb/en-cartelera` → Películas en cines
+  - `GET /api/tmdb/proximamente` → Próximos estrenos
+  - `GET /api/tmdb/populares` → Películas populares
+  - `POST /api/peliculas/agregar-desde-tmdb` → Guardar película seleccionada
+
+### 🎫 **Sistema de Reservas Avanzado**
+- **Reservas Temporales:** Bloqueo de asientos por 10 minutos al reservar
+- **Liberación Automática:** Scheduler que libera asientos expirados cada minuto
+- **Bloqueo Pesimista:** Nivel de aislamiento `SERIALIZABLE` para evitar conflictos
+- **Pre-Validaciones:** Verifica disponibilidad, estado de función, compatibilidad sala-asiento
+
+### 🛒 **Proceso de Compra Completo (Orquestador)**
+1. **Calcular Total:** `POST /api/compras/calcular-total`
+   - Subtotal boletos (precio función × cantidad)
+   - Subtotal productos (precio × cantidad)
+   - Total general
+2. **Confirmar Compra:** `POST /api/compras/confirmar`
+   - Creación atómica de boletos + productos + pago
+   - Número de confirmación único
+   - Respuesta completa con resumen detallado
+
+### 🔒 **Seguridad JWT**
+- **Autenticación Stateless:** Tokens JWT con expiración de 24 horas
+- **Roles y Permisos:** `ROLE_ADMIN`, `ROLE_CLIENTE`
+- **Filtro de Autenticación:** 13 filtros de seguridad configurados
+- **Encriptación BCrypt:** Contraseñas hasheadas
+- **CORS Configurado:** Orígenes permitidos para frontend
+
+### ⏰ **Validaciones de Negocio**
+- **Colisión de Horarios:** Previene funciones solapadas en la misma sala
+- **Validación de Precios:** Precio de entrada obligatorio por función
+- **Verificación de Capacidad:** Valida que no se excedan asientos disponibles
+- **Integridad de Datos:** Validaciones con Jakarta Validation
+
+---
+
+## 📚 **Documentación para Desarrolladores Frontend**
+
+### 🚀 **DOCUMENTO CENTRALIZADO** → [FRONTEND_INTEGRATION_GUIDE.md](FRONTEND_INTEGRATION_GUIDE.md)
+
+Este documento unifica toda la información necesaria para consumir el backend:
+- ✅ **Flujo Completo de Usuario:** Desde login hasta confirmación de compra
+- ✅ **Flujo de Administrador:** Desde exploración TMDb hasta creación de funciones
+- ✅ **Endpoints Detallados:** Con ejemplos de request/response
+- ✅ **Modelos TypeScript:** Interfaces listas para copiar
+- ✅ **Servicios Angular:** Ejemplos de implementación
+- ✅ **Interceptores JWT:** Configuración de autenticación
+- ✅ **Guards de Rutas:** Protección de páginas por rol
+- ✅ **Manejo de Errores:** Estrategias recomendadas
+- ✅ **Paginación:** Implementación completa con componentes
+- ✅ **Estado de la Aplicación:** Qué funciona y qué falta
+
+📖 **Documentación Adicional:**
+- 📘 [API_DOCUMENTATION.md](API_DOCUMENTATION.md) - Referencia completa de endpoints
+- 🔐 [ANGULAR_INTEGRATION_GUIDE.md](ANGULAR_INTEGRATION_GUIDE.md) - Integración con Angular
+- 🎬 [TMDB_INTEGRATION.md](TMDB_INTEGRATION.md) - Detalles técnicos de TMDb
+- 📋 [COMMIT_SUMMARY.md](COMMIT_SUMMARY.md) - Resumen ejecutivo de cambios
+
+---
 
 ## 📋 Tabla de Contenidos
 
@@ -139,22 +217,88 @@ spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
 spring.datasource.hikari.maximum-pool-size=20
 ```
 
-## 🔧 Uso
+## � Tecnologías y Versiones
 
-### Ejecutar la Aplicación
+- **Java:** 23.0.2 (compilación con Java 21)
+- **Spring Boot:** 3.5.5
+- **Spring Data JPA:** 3.5.5
+- **Spring Security:** 6.3.1
+- **Hibernate:** 6.6.26
+- **MySQL:** 8.0.41
+- **JWT (JJWT):** io.jsonwebtoken 0.11.5
+- **Lombok:** 1.18.36
+- **Jackson:** 2.18.0
+- **HikariCP:** 6.2.1
+- **Maven:** 3.x
 
-```bash
-# Desarrollo
-mvn spring-boot:run
+---
 
-# Producción (JAR)
-mvn clean package
-java -jar target/cinerama-0.0.1-SNAPSHOT.jar
+## 📊 Arquitectura del Sistema
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    CAPA DE PRESENTACIÓN                         │
+│              13 Controllers REST (@RestController)              │
+│   ┌──────────────────────────────────────────────────────────┐  │
+│   │ AuthController | PeliculaController | TMDbController    │  │
+│   │ FuncionController | CompraController | AsientoController │  │
+│   │ BoletoController | PagoController | ProductoController  │  │
+│   │ ClienteController | SalaController | VentaProductoController │
+│   └──────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                     CAPA DE SEGURIDAD                           │
+│         JwtRequestFilter → SecurityFilterChain (13 filtros)     │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                    CAPA DE NEGOCIO                              │
+│         13 Services (@Service + @Transactional)                 │
+│   ┌──────────────────────────────────────────────────────────┐  │
+│   │ PeliculaService | TMDbService (con @Cacheable)          │  │
+│   │ FuncionService | CompraService | AsientoService         │  │
+│   │ BoletoService | PagoService | ProductoService           │  │
+│   │ + AsientoScheduler (cron job cada 1 minuto)             │  │
+│   └──────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                   CAPA DE PERSISTENCIA                          │
+│         12 Repositories (Spring Data JPA + JPQL)                │
+│   ┌──────────────────────────────────────────────────────────┐  │
+│   │ Queries con @Query | Derived Methods | Pessimistic Lock │  │
+│   └──────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                    BASE DE DATOS MySQL 8.0.41                   │
+│         13 Tablas (12 entidades + 1 tabla intermedia)           │
+│   ┌──────────────────────────────────────────────────────────┐  │
+│   │ usuarios | roles | usuario_roles | clientes | peliculas │  │
+│   │ salas | funciones | asientos | boletos | productos      │  │
+│   │ ventas_productos | detalle_venta_producto | pagos       │  │
+│   └──────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                   INTEGRACIÓN EXTERNA                           │
+│              TMDb API (The Movie Database v3)                   │
+│         RestTemplate + @Cacheable (TTL: 10 minutos)             │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### Acceder a la API
+### **Patrones de Diseño Implementados**
+- ✅ **MVC** (Model-View-Controller)
+- ✅ **Repository Pattern** (Spring Data JPA)
+- ✅ **Service Layer Pattern** (Lógica de negocio aislada)
+- ✅ **DTO Pattern** (Transferencia de datos)
+- ✅ **Builder Pattern** (con Lombok @Builder)
+- ✅ **Orchestrator Pattern** (CompraController coordina múltiples operaciones)
+- ✅ **Proxy Pattern** (TMDbController como proxy a API externa)
+- ✅ **Scheduler Pattern** (Liberación automática de asientos)
 
-Base URL: `http://localhost:8080/api`
+---
 
 ## � Seguridad (Spring Security + JWT)
 
@@ -426,39 +570,79 @@ Si tienes preguntas o sugerencias sobre el proyecto, no dudes en contactarnos:
 
 ## 🔄 Roadmap
 
-### ✅ Completado
-- [x] **Integración con TMDb API** - Sincronización automática de películas
-- [x] Sistema CRUD completo para todas las entidades
-- [x] Arquitectura en capas con Spring Boot
-- [x] Gestión de clientes, boletos y ventas
-- [x] Sistema de pagos
+### ✅ Completado (Versión 2.0.0)
+- [x] **Integración con TMDb API** - Arquitectura selectiva (proxy + BD)
+- [x] **Sistema de Reservas Avanzado** - Bloqueo temporal + liberación automática
+- [x] **Orquestador de Compras** - Proceso completo de checkout
+- [x] **Validaciones de Negocio** - Colisiones de horarios, pre-reservas
+- [x] **Autenticación JWT** - Spring Security 6.3.1 + tokens de 24h
+- [x] **CRUD Completo** - 12 entidades con relaciones JPA
+- [x] **Scheduler Automático** - Liberación de asientos cada minuto
+- [x] **Caché Inteligente** - TMDb API con TTL de 10 minutos
 
-### 🚧 En Desarrollo
-- [x] Autenticación y autorización con JWT (Spring Security + JWT)
-- [ ] Dashboard de administración
-- [ ] Reportes avanzados y analytics
+### 🚧 En Desarrollo (Q1 2026)
+- [ ] Tests Unitarios (Target: 60% coverage)
+- [ ] Swagger/OpenAPI - Documentación interactiva
+- [ ] @ControllerAdvice Global - Manejo unificado de excepciones
+- [ ] Paginación completa en todos los endpoints
 
-### 📋 Próximas Funcionalidades
-- [ ] Sincronización automática diaria con TMDb
-- [ ] Integración con sistemas de pago externos
-- [ ] Notificaciones por email/SMS
-- [ ] API para aplicaciones móviles
-- [ ] Sistema de reservas online
-- [ ] Integración con sistemas de cine (proyectores, etc.)
-- [ ] Sistema de recomendaciones basado en TMDb
-
-## 📚 Documentación Adicional
-
-- 📘 [Integración TMDb - Guía Completa](TMDB_INTEGRATION.md)
-- 🚀 [Inicio Rápido - TMDb](INICIO_RAPIDO.md)
-- 🔑 [Configurar API Key de TMDb](CONFIGURAR_API_KEY.md)
-- 📊 [Resumen de Implementación TMDb](RESUMEN_IMPLEMENTACION.md)
-- 📮 [Colección de Postman](Cinerama_Postman_Collection.json)
+### 📋 Próximas Funcionalidades (Backlog)
+- [ ] Flyway/Liquibase - Migraciones versionadas de BD
+- [ ] Sistema de Descuentos y Promociones
+- [ ] Notificaciones por Email/SMS
+- [ ] Historial de Compras del Cliente
+- [ ] Sistema de Reseñas y Calificaciones
+- [ ] Dashboard de Analytics para Admin
+- [ ] Integración con Pasarelas de Pago Reales
+- [ ] API para Aplicaciones Móviles
+- [ ] Sincronización Automática Diaria con TMDb
+- [ ] Sistema de Recomendaciones basado en ML
 
 ---
 
-*Última actualización: Octubre 2025*
-*Versión: 2.1.0 - Seguridad con JWT + TMDb* ✨
+## 📚 Documentación Completa
+
+### **Para Desarrolladores Frontend:** 🎯
+📖 **[FRONTEND_INTEGRATION_GUIDE.md](FRONTEND_INTEGRATION_GUIDE.md)** ← **DOCUMENTO PRINCIPAL**
+- Objetivo completo de la aplicación
+- Flujos de usuario detallados (Cliente + Admin)
+- Estado actual del backend (qué funciona y qué falta)
+- Endpoints con ejemplos de request/response
+- Modelos TypeScript listos para usar
+- Servicios Angular implementados
+- Configuración completa de autenticación
+- Casos de uso con código
+
+### **Documentación Técnica Adicional:**
+- 📘 [API_DOCUMENTATION.md](API_DOCUMENTATION.md) - Referencia de endpoints REST
+- 🔐 [ANGULAR_INTEGRATION_GUIDE.md](ANGULAR_INTEGRATION_GUIDE.md) - Integración Angular específica
+- 🎬 [TMDB_INTEGRATION.md](TMDB_INTEGRATION.md) - Detalles técnicos de TMDb
+- � [COMMIT_SUMMARY.md](COMMIT_SUMMARY.md) - Resumen ejecutivo de cambios del proyecto
+
+---
+
+## 🐛 Scripts de Mantenimiento
+
+### **Limpieza de Base de Datos**
+
+Ubicación: Raíz del proyecto
+
+1. **`cleanup-peliculas-huerfanas.sql`**
+   - **Propósito:** Eliminar películas que no fueron estrenadas en Noviembre 2025
+   - **Uso:** Ejecutar en MySQL después de hacer backup
+   - **Criterio:** `DELETE WHERE NOT (YEAR = 2025 AND MONTH = 11)`
+
+2. **`cleanup-tablas-obsoletas.sql`**
+   - **Propósito:** Eliminar tablas sin entidades JPA (`permisos`, `rol_permisos`)
+   - **Uso:** Descomentar comandos DROP después de verificar datos
+   - **Incluye:** Backup instructions, rollback procedure, OPTIMIZE TABLE
+
+⚠️ **IMPORTANTE:** Siempre hacer backup antes de ejecutar scripts de limpieza:
+```bash
+mysqldump -u root -p dbcinerama > backup_dbcinerama_$(date +%Y%m%d).sql
+```
+
+---
 
 ---
 
