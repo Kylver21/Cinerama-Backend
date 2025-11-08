@@ -60,6 +60,31 @@ public class TMDbMovieDTO {
     @JsonProperty("video")
     private Boolean video;
 
+    // Campos adicionales para detalles completos (cuando se consulta película individual)
+    @JsonProperty("runtime")
+    private Integer runtime; // Duración en minutos
+
+    @JsonProperty("genres")
+    private List<Genre> genres; // Lista de géneros completos (no solo IDs)
+
+    @JsonProperty("status")
+    private String status; // Released, Post Production, etc.
+
+    /**
+     * DTO interno para géneros completos
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class Genre {
+        @JsonProperty("id")
+        private Integer id;
+        
+        @JsonProperty("name")
+        private String name;
+    }
+
     // Método auxiliar para convertir releaseDate String a LocalDate
     public LocalDate getReleaseDateAsLocalDate() {
         try {

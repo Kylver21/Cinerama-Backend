@@ -3,6 +3,7 @@ package com.utp.cinerama.cinerama.dto;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -28,4 +29,8 @@ public class CrearFuncionDTO {
     @Min(value = 1, message = "Debe haber al menos 1 asiento")
     @Max(value = 500, message = "No puede haber más de 500 asientos")
     private Integer asientosTotales;
+
+    @NotNull(message = "El precio de la entrada es obligatorio")
+    @DecimalMin(value = "0.01", message = "El precio debe ser mayor a 0")
+    private BigDecimal precioEntrada;
 }

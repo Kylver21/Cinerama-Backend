@@ -25,6 +25,7 @@ public interface PeliculaService {
     
     // Metodos para integracion con TMDb
     SyncResponseDTO sincronizarPeliculasDesdeAPI(Integer paginas);
+    Pelicula agregarPeliculaDesdeTMDb(Long tmdbId);
     List<Pelicula> obtenerPeliculasActivas();
     List<Pelicula> obtenerPeliculasPorPopularidad();
     List<Pelicula> obtenerPeliculasPorVoto();

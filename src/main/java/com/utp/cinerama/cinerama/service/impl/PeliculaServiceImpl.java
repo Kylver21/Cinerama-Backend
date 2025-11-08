@@ -132,15 +132,75 @@ public class PeliculaServiceImpl implements PeliculaService {
         return peliculaRepository.findByTituloContainingIgnoreCase(titulo, pageable);
     }
 
+    // ========== SINCRONIZACION CON TMDb API ==========
+
     /**
-     * Sincroniza películas desde TMDb API
-     * @param paginas Número de páginas a sincronizar (1-5 recomendado)
-     * @return Resultado de la sincronización
+     * Agrega una película específica desde TMDb a la cartelera local
+     * Solución recomendada: Solo guarda películas que el admin selecciona
+     * 
+     * @param tmdbId ID de la película en TMDb
+     * @return Película guardada en BD local
      */
     @Override
     @Transactional
+    public Pelicula agregarPeliculaDesdeTMDb(Long tmdbId) {
+        log.info("🎬 Agregando película desde TMDb - ID: {}", tmdbId);
+        
+        // 1. Verificar si ya existe
+        Optional<Pelicula> existente = peliculaRepository.findByTmdbId(tmdbId);
+        if (existente.isPresent()) {
+            log.info("ℹ️ La película ya existe en el sistema: {}", existente.get().getTitulo());
+            return existente.get();
+        }
+        
+        // 2. Obtener detalles completos desde TMDb
+        TMDbMovieDTO tmdbMovie = tmdbService.getMovieDetails(tmdbId);
+        
+        // 3. Crear película con datos completos (incluye runtime)
+        Pelicula nuevaPelicula = Pelicula.builder()
+                .tmdbId(tmdbMovie.getId())
+                .titulo(tmdbMovie.getTitle())
+                .tituloOriginal(tmdbMovie.getOriginalTitle())
+                .idiomaOriginal(tmdbMovie.getOriginalLanguage())
+                // Usar genres completos si están disponibles, sino usar genreIds
+                .genero(tmdbMovie.getGenres() != null && !tmdbMovie.getGenres().isEmpty()
+                        ? tmdbService.mapGenresToNames(tmdbMovie.getGenres())
+                        : tmdbService.mapGenreIdsToNames(tmdbMovie.getGenreIds()))
+                .sinopsis(tmdbMovie.getOverview())
+                .resumen(tmdbMovie.getOverview())
+                .duracion(tmdbMovie.getRuntime()) // ✅ Duración obtenida de detalles
+                .popularidad(tmdbMovie.getPopularity())
+                .posterUrl(tmdbMovie.getFullPosterPath())
+                .backdropUrl(tmdbMovie.getFullBackdropPath())
+                .fechaEstreno(tmdbMovie.getReleaseDateAsLocalDate())
+                .votoPromedio(tmdbMovie.getVoteAverage())
+                .totalVotos(tmdbMovie.getVoteCount())
+                .clasificacion(tmdbMovie.getAdult() ? "18+" : "ATP")
+                .adult(tmdbMovie.getAdult())
+                .activa(true) // Por defecto activa al agregarla
+                .build();
+        
+        Pelicula guardada = peliculaRepository.save(nuevaPelicula);
+        log.info("✅ Película agregada exitosamente: {} - Duración: {} min", 
+                 guardada.getTitulo(), guardada.getDuracion());
+        
+        return guardada;
+    }
+
+    /**
+     * DEPRECADO: Sincroniza múltiples películas desde TMDb
+     * ⚠️ Este método guarda TODAS las películas y puede saturar la BD
+     * 
+     * @param paginas Número de páginas a sincronizar (1-5 recomendado)
+     * @return Resultado de la sincronización
+     * @deprecated Usar {@link #agregarPeliculaDesdeTMDb(Long)} para control granular
+     */
+    @Override
+    @Transactional
+    @Deprecated
     public SyncResponseDTO sincronizarPeliculasDesdeAPI(Integer paginas) {
         log.info("🚀 Iniciando sincronización de películas desde TMDb (páginas: {})", paginas);
+        log.warn("⚠️ DEPRECADO: Considera usar POST /api/peliculas/agregar-desde-tmdb para películas específicas");
         
         int peliculasNuevas = 0;
         int peliculasActualizadas = 0;

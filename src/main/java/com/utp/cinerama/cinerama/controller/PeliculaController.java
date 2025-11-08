@@ -262,13 +262,42 @@ public class PeliculaController {
     // ========== SINCRONIZACIÓN CON TMDb API ==========
 
     /**
-     * Sincroniza películas desde TMDb API (Now Playing)
+     * NUEVO: Agrega una película específica desde TMDb a la cartelera local
+     * El admin selecciona una película del catálogo TMDb y la añade al sistema
+     * 
+     * @param tmdbId ID de la película en TMDb
+     * @return Película guardada en BD local
+     * 
+     * Ejemplo: POST /api/peliculas/agregar-desde-tmdb?tmdbId=634649
+     */
+    @PostMapping("/agregar-desde-tmdb")
+    public ResponseEntity<ApiResponse<Pelicula>> agregarPeliculaDesdeTMDb(
+            @RequestParam Long tmdbId) {
+        
+        log.info("Admin agregando película desde TMDb - ID: {}", tmdbId);
+        Pelicula pelicula = peliculaService.agregarPeliculaDesdeTMDb(tmdbId);
+        
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success(
+                    "Película agregada exitosamente. Ahora puedes crear funciones para ella.", 
+                    pelicula
+                ));
+    }
+
+    /**
+     * DEPRECADO: Sincroniza películas desde TMDb API (Now Playing)
+     * 
+     * ⚠️ NOTA: Este endpoint guarda TODAS las películas de TMDb en tu BD.
+     * Se recomienda usar /agregar-desde-tmdb para agregar películas específicas.
+     * Los endpoints /api/tmdb/* proveen catálogo completo sin guardar.
      * 
      * @param paginas Número de páginas a sincronizar (1-5). Default: 1
      * @return Resultado de la sincronización con estadísticas
      * 
-     * Ejemplo: POST /api/peliculas/sync?paginas=2
+     * @deprecated Usar {@link #agregarPeliculaDesdeTMDb(Long)} para agregar películas individuales
      */
+    @Deprecated
     @PostMapping("/sync")
     public ResponseEntity<ApiResponse<SyncResponseDTO>> sincronizarPeliculas(
             @RequestParam(defaultValue = "1") Integer paginas) {

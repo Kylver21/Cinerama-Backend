@@ -18,6 +18,10 @@ public class TMDbConfig {
         return baseUrl + "/movie/now_playing";
     }
 
+    public String getUpcomingUrl() {
+        return baseUrl + "/movie/upcoming";
+    }
+
     public String getPopularUrl() {
         return baseUrl + "/movie/popular";
     }

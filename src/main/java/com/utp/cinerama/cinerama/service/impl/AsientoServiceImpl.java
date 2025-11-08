@@ -43,6 +43,9 @@ public class AsientoServiceImpl implements AsientoService {
         Asiento asiento = asientoRepository.findByIdWithLock(asientoId)
                 .orElseThrow(() -> new IllegalArgumentException("Asiento no encontrado: " + asientoId));
 
+        // Validaciones adicionales
+        validarPreReserva(asiento);
+
         // ✅ Verificar que esté disponible
         if (!asiento.estaDisponible()) {
             throw new IllegalStateException("El asiento " + asiento.getCodigoAsiento() + 
@@ -192,6 +195,40 @@ public class AsientoServiceImpl implements AsientoService {
     }
 
     // 🎭 Métodos auxiliares
+
+    /**
+     * Validaciones de pre-reserva para garantizar integridad
+     */
+    private void validarPreReserva(Asiento asiento) {
+        // 1. Verificar que la función aún no haya iniciado
+        Funcion funcion = asiento.getFuncion();
+        LocalDateTime ahora = LocalDateTime.now();
+        
+        if (funcion.getFechaHora().isBefore(ahora)) {
+            throw new IllegalStateException(
+                String.format("No se puede reservar el asiento %s. La función ya inició a las %s",
+                              asiento.getCodigoAsiento(),
+                              funcion.getFechaHora())
+            );
+        }
+        
+        // 2. Verificar que la función tenga asientos disponibles
+        if (funcion.getAsientosDisponibles() <= 0) {
+            throw new IllegalStateException(
+                String.format("No hay asientos disponibles para la función de %s a las %s",
+                              funcion.getPelicula().getTitulo(),
+                              funcion.getFechaHora())
+            );
+        }
+        
+        // 3. Verificar que el asiento no esté bloqueado
+        if (asiento.getEstado() == EstadoAsiento.BLOQUEADO) {
+            throw new IllegalStateException(
+                String.format("El asiento %s está bloqueado y no puede ser reservado",
+                              asiento.getCodigoAsiento())
+            );
+        }
+    }
 
     /**
      * Calcula el precio según el tipo de asiento

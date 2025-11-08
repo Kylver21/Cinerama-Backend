@@ -1,11 +1,13 @@
 package com.utp.cinerama.cinerama.service.impl;
 
+import com.utp.cinerama.cinerama.exception.BusinessException;
 import com.utp.cinerama.cinerama.model.Funcion;
 import com.utp.cinerama.cinerama.repository.FuncionRepository;
 import com.utp.cinerama.cinerama.service.FuncionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,6 +16,8 @@ public class FuncionServiceImpl implements FuncionService {
 
     @Autowired
     private FuncionRepository funcionRepository;
+
+    private static final int BUFFER_LIMPIEZA_MINUTOS = 15;
 
     @Override
     public List<Funcion> obtenerTodasLasFunciones() {
@@ -27,6 +31,8 @@ public class FuncionServiceImpl implements FuncionService {
 
     @Override
     public Funcion crearFuncion(Funcion funcion) {
+        // Validar colisiones de horarios antes de crear
+        validarColisionesHorarios(funcion);
         return funcionRepository.save(funcion);
     }
 
@@ -39,6 +45,7 @@ public class FuncionServiceImpl implements FuncionService {
                     f.setFechaHora(funcion.getFechaHora());
                     f.setAsientosDisponibles(funcion.getAsientosDisponibles());
                     f.setAsientosTotales(funcion.getAsientosTotales());
+                    f.setPrecioEntrada(funcion.getPrecioEntrada());
                     return funcionRepository.save(f);
                 })
                 .orElseThrow(() -> new RuntimeException("Función no encontrada"));
@@ -47,5 +54,51 @@ public class FuncionServiceImpl implements FuncionService {
     @Override
     public void eliminarFuncion(Long id) {
         funcionRepository.deleteById(id);
+    }
+
+    /**
+     * Valida que no haya colisiones de horarios en la misma sala
+     * Considera la duración de la película + buffer de limpieza
+     */
+    private void validarColisionesHorarios(Funcion nuevaFuncion) {
+        // Si la película no tiene duración definida, usar duración promedio (120 minutos)
+        Integer duracion = nuevaFuncion.getPelicula().getDuracion() != null ? 
+                          nuevaFuncion.getPelicula().getDuracion() : 120;
+        
+        // Calcular hora de inicio y fin de la nueva función (incluyendo buffer de limpieza)
+        LocalDateTime inicioNueva = nuevaFuncion.getFechaHora();
+        LocalDateTime finNueva = inicioNueva.plusMinutes(duracion + BUFFER_LIMPIEZA_MINUTOS);
+        
+        // Obtener todas las funciones de la misma sala
+        List<Funcion> funcionesExistentes = funcionRepository.findBySalaId(nuevaFuncion.getSala().getId());
+        
+        for (Funcion funcionExistente : funcionesExistentes) {
+            // Saltar si es la misma función (caso de actualización)
+            if (nuevaFuncion.getId() != null && nuevaFuncion.getId().equals(funcionExistente.getId())) {
+                continue;
+            }
+            
+            Integer duracionExistente = funcionExistente.getPelicula().getDuracion() != null ? 
+                                       funcionExistente.getPelicula().getDuracion() : 120;
+            
+            LocalDateTime inicioExistente = funcionExistente.getFechaHora();
+            LocalDateTime finExistente = inicioExistente.plusMinutes(duracionExistente + BUFFER_LIMPIEZA_MINUTOS);
+            
+            // Verificar solapamiento
+            boolean haySolapamiento = inicioNueva.isBefore(finExistente) && finNueva.isAfter(inicioExistente);
+            
+            if (haySolapamiento) {
+                throw new BusinessException(
+                    String.format("Colisión de horarios detectada en la sala %s. " +
+                                "La función a las %s terminaría a las %s, " +
+                                "pero ya existe una función a las %s que ocupa la sala hasta las %s.",
+                                nuevaFuncion.getSala().getNombre(),
+                                inicioNueva,
+                                finNueva,
+                                inicioExistente,
+                                finExistente)
+                );
+            }
+        }
     }
 }

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -44,4 +45,9 @@ public class Funcion {
     @Max(value = 500, message = "No puede haber más de 500 asientos")
     @Column(nullable = false)
     private Integer asientosTotales;
+
+    @NotNull(message = "El precio de la entrada es obligatorio")
+    @DecimalMin(value = "0.0", inclusive = false, message = "El precio debe ser mayor a 0")
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal precioEntrada;
 }
