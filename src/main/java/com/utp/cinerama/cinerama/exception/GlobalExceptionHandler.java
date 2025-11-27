@@ -8,9 +8,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -220,5 +222,84 @@ public class GlobalExceptionHandler {
                 .build();
         
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    /**
+     * Maneja ResponseStatusException (usadas en servicios para errores de negocio)
+     * 
+     * Cuando: Se lanza ResponseStatusException con código y mensaje específico
+     * Retorna: El código HTTP especificado en la excepción
+     * 
+     * Ejemplos:
+     * - 409 CONFLICT: "El username 'cliente1' ya está en uso"
+     * - 409 CONFLICT: "El email 'cliente1@email.com' ya está registrado"
+     * - 404 NOT_FOUND: "Rol ROLE_CLIENTE no encontrado"
+     */
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorResponse> handleResponseStatusException(
+            ResponseStatusException ex,
+            HttpServletRequest request) {
+        
+        HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+        String mensaje = ex.getReason() != null ? ex.getReason() : "Error en la solicitud";
+        
+        log.warn("ResponseStatusException en {}: {} - {}", 
+                 request.getRequestURI(), status, mensaje);
+        
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .code(status.name())
+                .message(mensaje)
+                .status(status.value())
+                .path(request.getRequestURI())
+                .build();
+        
+        return ResponseEntity.status(status).body(errorResponse);
+    }
+
+    /**
+     * Maneja errores de integridad de datos (constraints de BD)
+     * 
+     * Cuando: Se viola un constraint UNIQUE en la base de datos
+     * Retorna: 409 CONFLICT con mensaje descriptivo
+     * 
+     * Ejemplos:
+     * - Teléfono duplicado
+     * - Número de documento duplicado
+     * - Email duplicado (si no se valida antes)
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(
+            DataIntegrityViolationException ex,
+            HttpServletRequest request) {
+        
+        String mensaje = "Error de integridad de datos";
+        String detalle = ex.getMostSpecificCause().getMessage();
+        
+        // Extraer información útil del error
+        if (detalle != null) {
+            if (detalle.contains("telefono") || detalle.contains("UKdtxgio8utms5uc0q7ywit7bp7")) {
+                mensaje = "El teléfono ya está registrado en el sistema";
+            } else if (detalle.contains("email")) {
+                mensaje = "El email ya está registrado en el sistema";
+            } else if (detalle.contains("numero_documento")) {
+                mensaje = "El número de documento ya está registrado en el sistema";
+            } else if (detalle.contains("username")) {
+                mensaje = "El nombre de usuario ya está en uso";
+            } else if (detalle.contains("Duplicate entry")) {
+                // Extraer el valor duplicado del mensaje
+                mensaje = "Ya existe un registro con ese valor en el sistema";
+            }
+        }
+        
+        log.warn("Error de integridad en {}: {}", request.getRequestURI(), detalle);
+        
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .code("CONFLICT")
+                .message(mensaje)
+                .status(HttpStatus.CONFLICT.value())
+                .path(request.getRequestURI())
+                .build();
+        
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
 }

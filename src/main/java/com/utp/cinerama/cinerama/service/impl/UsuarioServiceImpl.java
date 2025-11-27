@@ -3,6 +3,7 @@ package com.utp.cinerama.cinerama.service.impl;
 import com.utp.cinerama.cinerama.dto.LoginDTO;
 import com.utp.cinerama.cinerama.dto.LoginResponseDTO;
 import com.utp.cinerama.cinerama.dto.RegistroDTO;
+import com.utp.cinerama.cinerama.dto.RegistroAdminDTO;
 import com.utp.cinerama.cinerama.model.Cliente;
 import com.utp.cinerama.cinerama.model.Rol;
 import com.utp.cinerama.cinerama.model.Usuario;
@@ -56,7 +57,12 @@ public class UsuarioServiceImpl implements UsuarioService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "El email '" + registroDTO.getEmail() + "' ya está registrado");
         }
 
-        // 3. Crear usuario
+        // 3. Validar que el teléfono no exista
+        if (clienteRepository.findByTelefono(registroDTO.getTelefono()).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El teléfono '" + registroDTO.getTelefono() + "' ya está registrado");
+        }
+
+        // 4. Crear usuario
         Usuario usuario = Usuario.builder()
                 .username(registroDTO.getUsername())
                 .email(registroDTO.getEmail())
@@ -67,17 +73,17 @@ public class UsuarioServiceImpl implements UsuarioService {
                 .credencialesNoExpiradas(true)
                 .build();
 
-        // 4. Asignar rol CLIENTE por defecto
+        // 5. Asignar rol CLIENTE por defecto
     Rol rolCliente = rolRepository.findByNombre("ROLE_CLIENTE")
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Rol ROLE_CLIENTE no encontrado"));
         
         usuario.agregarRol(rolCliente);
 
-        // 5. Guardar usuario
+        // 6. Guardar usuario
         usuario = usuarioRepository.save(usuario);
         log.info("Usuario creado con ID: {}", usuario.getId());
 
-        // 6. Crear cliente asociado
+        // 7. Crear cliente asociado
         Cliente cliente = Cliente.builder()
                 .usuario(usuario)
                 .nombre(registroDTO.getNombre())
@@ -92,6 +98,71 @@ public class UsuarioServiceImpl implements UsuarioService {
 
         clienteRepository.save(cliente);
         log.info("Cliente asociado creado con ID: {}", cliente.getId());
+
+        return usuario;
+    }
+
+    @Override
+    @Transactional
+    public Usuario registrarConRol(RegistroAdminDTO dto) {
+        log.info("Admin registrando nuevo usuario: {} con rol: {}", dto.getUsername(), dto.getRol());
+
+        // 1. Validar que el username no exista
+        if (usuarioRepository.existsByUsername(dto.getUsername())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, 
+                "El username '" + dto.getUsername() + "' ya está en uso");
+        }
+
+        // 2. Validar que el email no exista
+        if (usuarioRepository.existsByEmail(dto.getEmail())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, 
+                "El email '" + dto.getEmail() + "' ya está registrado");
+        }
+
+        // 3. Validar que el teléfono no exista
+        if (clienteRepository.findByTelefono(dto.getTelefono()).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, 
+                "El teléfono '" + dto.getTelefono() + "' ya está registrado");
+        }
+
+        // 4. Validar que el rol exista
+        Rol rol = rolRepository.findByNombre(dto.getRol())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
+                "Rol no encontrado: " + dto.getRol()));
+
+        // 5. Crear usuario
+        Usuario usuario = Usuario.builder()
+                .username(dto.getUsername())
+                .email(dto.getEmail())
+                .password(passwordEncoder.encode(dto.getPassword()))
+                .activo(true)
+                .cuentaNoExpirada(true)
+                .cuentaNoBloqueada(true)
+                .credencialesNoExpiradas(true)
+                .build();
+
+        // 6. Asignar rol seleccionado
+        usuario.agregarRol(rol);
+
+        // 7. Guardar usuario
+        usuario = usuarioRepository.save(usuario);
+        log.info("Usuario creado con ID: {} y rol: {}", usuario.getId(), dto.getRol());
+
+        // 8. Crear cliente asociado (para todos los roles, para mantener datos personales)
+        Cliente cliente = Cliente.builder()
+                .usuario(usuario)
+                .nombre(dto.getNombre())
+                .apellido(dto.getApellido())
+                .email(dto.getEmail())
+                .telefono(dto.getTelefono())
+                .numeroDocumento(dto.getNumeroDocumento())
+                .tipoDocumento(Cliente.TipoDocumento.valueOf(dto.getTipoDocumento()))
+                .puntosAcumulados(0)
+                .nivelFidelizacion("BRONCE")
+                .build();
+
+        clienteRepository.save(cliente);
+        log.info("Datos personales asociados creados para usuario: {}", dto.getUsername());
 
         return usuario;
     }

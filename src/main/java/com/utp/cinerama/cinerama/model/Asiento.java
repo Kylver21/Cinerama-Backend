@@ -1,5 +1,6 @@
 package com.utp.cinerama.cinerama.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -17,7 +18,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = "funcion")
+@ToString(exclude = {"funcion", "boleto"})
 public class Asiento {
 
     @Id
@@ -26,6 +27,7 @@ public class Asiento {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "funcion_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Funcion funcion;
 
     @Column(nullable = false, length = 2)
@@ -57,6 +59,7 @@ public class Asiento {
 
     // Relación con Boleto (cuando se confirma la compra)
     @OneToOne(mappedBy = "asiento")
+    @JsonIgnoreProperties({"asiento", "funcion", "cliente"})
     private Boleto boleto;
 
     public enum TipoAsiento {

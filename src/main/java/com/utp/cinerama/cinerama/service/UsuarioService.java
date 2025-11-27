@@ -3,6 +3,7 @@ package com.utp.cinerama.cinerama.service;
 import com.utp.cinerama.cinerama.dto.LoginDTO;
 import com.utp.cinerama.cinerama.dto.LoginResponseDTO;
 import com.utp.cinerama.cinerama.dto.RegistroDTO;
+import com.utp.cinerama.cinerama.dto.RegistroAdminDTO;
 import com.utp.cinerama.cinerama.model.Usuario;
 
 import java.util.List;
@@ -11,9 +12,15 @@ import java.util.Optional;
 public interface UsuarioService {
 
     /**
-     * Registrar un nuevo usuario con rol CLIENTE
+     * Registrar un nuevo usuario con rol CLIENTE (registro público)
      */
     Usuario registrar(RegistroDTO registroDTO);
+
+    /**
+     * Registrar un nuevo usuario con rol seleccionable (solo ADMIN)
+     * Permite crear usuarios con rol ADMIN, CLIENTE o EMPLEADO
+     */
+    Usuario registrarConRol(RegistroAdminDTO registroAdminDTO);
 
     /**
      * Autenticar usuario y generar token JWT

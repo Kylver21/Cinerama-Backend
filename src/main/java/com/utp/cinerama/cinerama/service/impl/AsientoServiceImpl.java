@@ -107,27 +107,37 @@ public class AsientoServiceImpl implements AsientoService {
     public List<Asiento> generarAsientosParaFuncion(Long funcionId) {
         log.info("Generando asientos para función: {}", funcionId);
 
+        // Verificar si ya existen asientos para esta función
+        List<Asiento> asientosExistentes = asientoRepository.findByFuncionIdOrderByFilaAscNumeroAsc(funcionId);
+        if (!asientosExistentes.isEmpty()) {
+            log.info("La función {} ya tiene {} asientos generados", funcionId, asientosExistentes.size());
+            return asientosExistentes;
+        }
+
         Funcion funcion = funcionRepository.findById(funcionId)
                 .orElseThrow(() -> new IllegalArgumentException("Función no encontrada: " + funcionId));
 
         Sala sala = funcion.getSala();
         int capacidad = sala.getCapacidad();
 
-        // 🏗️ Calcular distribución de asientos
-    int asientosPorFila = 10; // Estándar
-        int totalFilas = (int) Math.ceil((double) capacidad / asientosPorFila);
-
+        // 🎭 Distribución tipo Cineplanet (como la imagen)
+        // Layout: 10 asientos lado izquierdo | pasillo | 11 asientos lado derecho
+        // Filas: A-J (10 filas máximo)
+        // Numeración: 21-12 (izquierda) | 00 (pasillo) | 11-01 (derecha)
+        
+        int asientosPorFila = 21; // Máximo por fila (sin contar pasillo)
+        int totalFilas = Math.min(10, (int) Math.ceil((double) capacidad / asientosPorFila));
+        
         List<Asiento> asientos = new ArrayList<>();
+        int asientosCreados = 0;
 
-        for (int f = 0; f < totalFilas; f++) {
-            String fila = String.valueOf((char) ('A' + f)); // A, B, C, ...
+        for (int f = 0; f < totalFilas && asientosCreados < capacidad; f++) {
+            String fila = String.valueOf((char) ('A' + f)); // A, B, C, ... J
 
-            for (int n = 1; n <= asientosPorFila && asientos.size() < capacidad; n++) {
-                // 🎭 En Cinerama Chimbote solo hay asientos NORMAL
+            // Crear asientos de derecha a izquierda (como en la imagen: 21, 20, 19... 01)
+            for (int n = asientosPorFila; n >= 1 && asientosCreados < capacidad; n--) {
                 TipoAsiento tipo = TipoAsiento.NORMAL;
-
-                // 💰 Precio plano para asientos NORMAL
-                Double precio = calcularPrecioAsiento(tipo);
+                Double precio = funcion.getPrecioEntrada().doubleValue();
 
                 Asiento asiento = Asiento.builder()
                         .funcion(funcion)
@@ -139,9 +149,13 @@ public class AsientoServiceImpl implements AsientoService {
                         .build();
 
                 asientos.add(asiento);
+                asientosCreados++;
             }
         }
 
+        log.info("✅ Generados {} asientos para función {} en sala {}", 
+                 asientos.size(), funcionId, sala.getNombre());
+        
         return asientoRepository.saveAll(asientos);
     }
 

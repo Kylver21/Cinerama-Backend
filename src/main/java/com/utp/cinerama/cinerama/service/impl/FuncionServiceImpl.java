@@ -3,10 +3,14 @@ package com.utp.cinerama.cinerama.service.impl;
 import com.utp.cinerama.cinerama.exception.BusinessException;
 import com.utp.cinerama.cinerama.model.Funcion;
 import com.utp.cinerama.cinerama.repository.FuncionRepository;
+import com.utp.cinerama.cinerama.service.AsientoService;
 import com.utp.cinerama.cinerama.service.FuncionService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -16,6 +20,10 @@ public class FuncionServiceImpl implements FuncionService {
 
     @Autowired
     private FuncionRepository funcionRepository;
+    
+    @Autowired
+    @Lazy // Evitar dependencia circular
+    private AsientoService asientoService;
 
     private static final int BUFFER_LIMPIEZA_MINUTOS = 15;
 
@@ -30,10 +38,18 @@ public class FuncionServiceImpl implements FuncionService {
     }
 
     @Override
+    @Transactional
     public Funcion crearFuncion(Funcion funcion) {
         // Validar colisiones de horarios antes de crear
         validarColisionesHorarios(funcion);
-        return funcionRepository.save(funcion);
+        
+        // Guardar la función primero
+        Funcion funcionCreada = funcionRepository.save(funcion);
+        
+        // ⭐ GENERAR ASIENTOS AUTOMÁTICAMENTE
+        asientoService.generarAsientosParaFuncion(funcionCreada.getId());
+        
+        return funcionCreada;
     }
 
     @Override
@@ -54,6 +70,31 @@ public class FuncionServiceImpl implements FuncionService {
     @Override
     public void eliminarFuncion(Long id) {
         funcionRepository.deleteById(id);
+    }
+    
+    @Override
+    public List<Funcion> obtenerFuncionesPorPelicula(Long peliculaId) {
+        return funcionRepository.findByPeliculaId(peliculaId);
+    }
+    
+    @Override
+    public List<Funcion> obtenerFuncionesPorSala(Long salaId) {
+        return funcionRepository.findBySalaId(salaId);
+    }
+    
+    @Override
+    public List<Funcion> obtenerFuncionesPorFecha(LocalDate fecha) {
+        return funcionRepository.findByFechaOrdenado(fecha);
+    }
+    
+    @Override
+    public List<Funcion> obtenerFuncionesDisponibles() {
+        return funcionRepository.findFuncionesDisponibles(LocalDateTime.now());
+    }
+    
+    @Override
+    public List<Funcion> obtenerFuncionesDisponiblesPorPelicula(Long peliculaId) {
+        return funcionRepository.findFuncionesDisponiblesByPeliculaId(peliculaId, LocalDateTime.now());
     }
 
     /**

@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -41,16 +42,37 @@ public class AuthController {
 
     /**
      * POST /api/auth/register
-     * Registrar un nuevo usuario
+     * Registrar un nuevo usuario (PÚBLICO - siempre asigna ROLE_CLIENTE)
      */
     @PostMapping("/register")
     public ResponseEntity<MensajeDTO> registrar(@Valid @RequestBody RegistroDTO registroDTO) {
-        log.info("Solicitud de registro para username: {}", registroDTO.getUsername());
+        log.info("Registro público para username: {}", registroDTO.getUsername());
 
-        Usuario usuario = usuarioService.registrar(registroDTO);
+        usuarioService.registrar(registroDTO);
 
         MensajeDTO respuesta = MensajeDTO.builder()
-                .mensaje("Usuario registrado exitosamente con ID: " + usuario.getId())
+                .mensaje("Usuario registrado exitosamente. ¡Bienvenido a Cinerama!")
+                .exitoso(true)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(respuesta);
+    }
+
+    /**
+     * POST /api/auth/admin/register
+     * Registrar un nuevo usuario con rol seleccionable (SOLO ADMIN)
+     * Roles permitidos: ROLE_ADMIN, ROLE_CLIENTE, ROLE_EMPLEADO
+     */
+    @PostMapping("/admin/register")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<MensajeDTO> registrarConRol(@Valid @RequestBody RegistroAdminDTO registroAdminDTO) {
+        log.info("Admin registrando usuario: {} con rol: {}", 
+                 registroAdminDTO.getUsername(), registroAdminDTO.getRol());
+
+        usuarioService.registrarConRol(registroAdminDTO);
+
+        MensajeDTO respuesta = MensajeDTO.builder()
+                .mensaje("Usuario '" + registroAdminDTO.getUsername() + "' registrado exitosamente con rol: " + registroAdminDTO.getRol())
                 .exitoso(true)
                 .build();
 

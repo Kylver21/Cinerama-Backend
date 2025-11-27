@@ -24,4 +24,16 @@ public interface FuncionRepository extends JpaRepository<Funcion, Long> {
     
     // Buscar funciones entre dos fechas y horas
     List<Funcion> findByFechaHoraBetween(LocalDateTime inicio, LocalDateTime fin);
+    
+    // Buscar funciones futuras (disponibles para compra)
+    @Query("SELECT f FROM Funcion f WHERE f.fechaHora > :ahora ORDER BY f.fechaHora ASC")
+    List<Funcion> findFuncionesDisponibles(@Param("ahora") LocalDateTime ahora);
+    
+    // Buscar funciones futuras de una película específica
+    @Query("SELECT f FROM Funcion f WHERE f.pelicula.id = :peliculaId AND f.fechaHora > :ahora ORDER BY f.fechaHora ASC")
+    List<Funcion> findFuncionesDisponiblesByPeliculaId(@Param("peliculaId") Long peliculaId, @Param("ahora") LocalDateTime ahora);
+    
+    // Buscar funciones por fecha ordenadas por hora
+    @Query("SELECT f FROM Funcion f WHERE DATE(f.fechaHora) = :fecha ORDER BY f.fechaHora ASC")
+    List<Funcion> findByFechaOrdenado(@Param("fecha") LocalDate fecha);
 }

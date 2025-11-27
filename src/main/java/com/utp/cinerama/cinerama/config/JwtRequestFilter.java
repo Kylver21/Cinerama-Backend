@@ -1,6 +1,10 @@
 package com.utp.cinerama.cinerama.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.utp.cinerama.cinerama.util.JwtUtil;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -8,6 +12,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,7 +20,11 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -24,6 +33,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
     private final UserDetailsService userDetailsService;
     private final JwtUtil jwtUtil;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -40,8 +50,30 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             try {
                 usernameOrEmail = jwtUtil.extractUsername(jwt);
                 log.debug("🔑 Token JWT detectado para usuario: {}", usernameOrEmail);
+            } catch (ExpiredJwtException e) {
+                log.warn("⚠️ Token JWT expirado: {}", e.getMessage());
+                sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, 
+                    "TOKEN_EXPIRED", 
+                    "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.");
+                return;
+            } catch (MalformedJwtException e) {
+                log.error("❌ Token JWT malformado: {}", e.getMessage());
+                sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, 
+                    "TOKEN_INVALID", 
+                    "Token inválido. Por favor, inicia sesión nuevamente.");
+                return;
+            } catch (SignatureException e) {
+                log.error("❌ Firma de token JWT inválida: {}", e.getMessage());
+                sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, 
+                    "TOKEN_INVALID_SIGNATURE", 
+                    "Token con firma inválida. Por favor, inicia sesión nuevamente.");
+                return;
             } catch (Exception e) {
                 log.error("❌ Error al extraer username del token: {}", e.getMessage());
+                sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, 
+                    "TOKEN_ERROR", 
+                    "Error al procesar el token. Por favor, inicia sesión nuevamente.");
+                return;
             }
         }
 
@@ -78,9 +110,17 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                     );
                 } else {
                     log.warn("⚠️ Token expirado para usuario: {}", usernameOrEmail);
+                    sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, 
+                        "TOKEN_EXPIRED", 
+                        "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.");
+                    return;
                 }
             } catch (Exception e) {
                 log.error("❌ Error al autenticar usuario: {}", e.getMessage());
+                sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, 
+                    "AUTH_ERROR", 
+                    "Error de autenticación. Por favor, inicia sesión nuevamente.");
+                return;
             }
         }
 
@@ -89,15 +129,25 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     }
 
     /**
+     * Envía una respuesta de error JSON al cliente
+     */
+    private void sendErrorResponse(HttpServletResponse response, int status, String code, String message) 
+            throws IOException {
+        response.setStatus(status);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding("UTF-8");
+        
+        Map<String, Object> errorBody = new HashMap<>();
+        errorBody.put("code", code);
+        errorBody.put("message", message);
+        errorBody.put("timestamp", LocalDateTime.now().toString());
+        errorBody.put("status", status);
+        
+        response.getWriter().write(objectMapper.writeValueAsString(errorBody));
+    }
+
+    /**
      * Extraer JWT del header Authorization o de las cookies
-     * 
-     * PRIORIDAD:
-     * 1. Header Authorization: Bearer <token>
-     * 2. Cookie: jwt=<token>
-     * 
-     * USO:
-     * - Header: Para aplicaciones SPA (React, Angular, Vue)
-     * - Cookie: Para remember me y seguridad adicional (HttpOnly)
      */
     private String extractJwtFromRequest(HttpServletRequest request) {
         // 1. Intentar obtener del header Authorization
@@ -122,8 +172,6 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
     /**
      * No filtrar rutas públicas (login, register, etc.)
-     * 
-     * OPTIMIZACIÓN: Evita ejecutar el filtro en rutas que no requieren autenticación
      */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
