@@ -78,4 +78,12 @@ public interface AsientoRepository extends JpaRepository<Asiento, Long> {
         */
     @Query("SELECT a FROM Asiento a WHERE a.funcion.id = :funcionId AND a.tipo = :tipo")
     List<Asiento> findByFuncionIdAndTipo(@Param("funcionId") Long funcionId, @Param("tipo") Asiento.TipoAsiento tipo);
+
+    /**
+     * Elimina todos los asientos de una función específica
+     * Usado cuando se elimina una función completa
+     */
+    @Modifying
+    @Query("DELETE FROM Asiento a WHERE a.funcion.id = :funcionId")
+    void deleteByFuncionId(@Param("funcionId") Long funcionId);
 }

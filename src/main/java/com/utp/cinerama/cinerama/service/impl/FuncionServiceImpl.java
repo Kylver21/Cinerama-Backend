@@ -2,9 +2,12 @@ package com.utp.cinerama.cinerama.service.impl;
 
 import com.utp.cinerama.cinerama.exception.BusinessException;
 import com.utp.cinerama.cinerama.model.Funcion;
+import com.utp.cinerama.cinerama.repository.AsientoRepository;
+import com.utp.cinerama.cinerama.repository.BoletoRepository;
 import com.utp.cinerama.cinerama.repository.FuncionRepository;
 import com.utp.cinerama.cinerama.service.AsientoService;
 import com.utp.cinerama.cinerama.service.FuncionService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -16,16 +19,23 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@Slf4j
 public class FuncionServiceImpl implements FuncionService {
 
     @Autowired
     private FuncionRepository funcionRepository;
     
     @Autowired
+    private AsientoRepository asientoRepository;
+    
+    @Autowired
+    private BoletoRepository boletoRepository;
+    
+    @Autowired
     @Lazy // Evitar dependencia circular
     private AsientoService asientoService;
 
-    private static final int BUFFER_LIMPIEZA_MINUTOS = 15;
+    private static final int BUFFER_LIMPIEZA_MINUTOS = 5;
 
     @Override
     public List<Funcion> obtenerTodasLasFunciones() {
@@ -68,8 +78,26 @@ public class FuncionServiceImpl implements FuncionService {
     }
 
     @Override
+    @Transactional
     public void eliminarFuncion(Long id) {
+        log.info("Eliminando función ID: {} con todos sus datos relacionados", id);
+        
+        // Verificar que la función existe
+        if (!funcionRepository.existsById(id)) {
+            throw new BusinessException("La función con ID " + id + " no existe");
+        }
+        
+        // 1. Eliminar boletos asociados a la función
+        boletoRepository.deleteByFuncionId(id);
+        log.info("Boletos de la función {} eliminados", id);
+        
+        // 2. Eliminar asientos asociados a la función
+        asientoRepository.deleteByFuncionId(id);
+        log.info("Asientos de la función {} eliminados", id);
+        
+        // 3. Finalmente eliminar la función
         funcionRepository.deleteById(id);
+        log.info("Función {} eliminada exitosamente", id);
     }
     
     @Override

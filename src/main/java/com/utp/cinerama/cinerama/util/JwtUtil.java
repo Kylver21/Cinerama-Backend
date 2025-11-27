@@ -24,6 +24,11 @@ public class JwtUtil {
     // Nota: En produccion deberia ir en un vault o variable de entorno
     private final String SECRET_KEY = "NDA0RTYzNTI2NjU1NkE1ODZFMzI3MjM1NzUzODc4MkY0MTNGNDQyODQ3MkI0QjYyNTA2NDUzNjc1NjZCNTk3MA==";
 
+    // ⏰ TIEMPOS DE EXPIRACIÓN POR ROL
+    private static final long EXPIRATION_ADMIN = 1000L * 60 * 60 * 8;      // 8 horas para admin
+    private static final long EXPIRATION_EMPLEADO = 1000L * 60 * 60 * 4;   // 4 horas para empleado
+    private static final long EXPIRATION_CLIENTE = 1000L * 60 * 60;        // 1 hora para cliente
+
     /**
      * Obtener la clave de firma desde el secret (Base64)
      * Este metodo centraliza la obtencion de la clave para evitar repeticion de codigo
@@ -34,9 +39,24 @@ public class JwtUtil {
     }
 
     /**
+     * Determina el tiempo de expiración según el rol del usuario
+     */
+    private long getExpirationByRole(String rol) {
+        if (rol == null) {
+            return EXPIRATION_CLIENTE;
+        }
+        
+        return switch (rol.toUpperCase()) {
+            case "ROLE_ADMIN", "ADMIN" -> EXPIRATION_ADMIN;
+            case "ROLE_EMPLEADO", "EMPLEADO" -> EXPIRATION_EMPLEADO;
+            default -> EXPIRATION_CLIENTE;
+        };
+    }
+
+    /**
      * Compatibilidad con ejemplo simplificado:
      * Genera un token con un unico rol en el claim "rol" y ademas en "roles" (lista)
-     * Expiracion fija de 1 hora si no se configuro por propiedades.
+     * Expiracion variable según el rol del usuario
      */
     public String generateToken(String username, String rol) {
         Map<String, Object> claims = new HashMap<>();
@@ -44,9 +64,13 @@ public class JwtUtil {
         // Tambien mantener consistencia con el resto de la app
         claims.put("roles", Collections.singletonList(rol));
 
-    Date now = new Date();
-    // Expiracion fija de 1 hora como en el ejemplo simplificado
-    Date expiryDate = new Date(now.getTime() + (1000L * 60 * 60));
+        Date now = new Date();
+        // ⏰ Expiración según el rol
+        long expirationTime = getExpirationByRole(rol);
+        Date expiryDate = new Date(now.getTime() + expirationTime);
+        
+        log.info("Generando token para {} con rol {} - Expira en {} horas", 
+                 username, rol, expirationTime / (1000 * 60 * 60));
 
         return Jwts.builder()
                 .setClaims(claims)
@@ -128,6 +152,31 @@ public class JwtUtil {
         } catch (Exception e) {
             log.error("Token invalido: {}", e.getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Obtiene el tiempo restante del token en minutos
+     * Útil para que el frontend muestre alertas de expiración
+     */
+    public long getTokenRemainingMinutes(String token) {
+        try {
+            Date expiration = extractAllClaims(token).getExpiration();
+            long remainingMs = expiration.getTime() - System.currentTimeMillis();
+            return remainingMs > 0 ? remainingMs / (1000 * 60) : 0;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Obtiene la fecha de expiración del token
+     */
+    public Date getExpirationDate(String token) {
+        try {
+            return extractAllClaims(token).getExpiration();
+        } catch (Exception e) {
+            return null;
         }
     }
 

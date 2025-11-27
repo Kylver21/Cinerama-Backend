@@ -216,7 +216,35 @@ public class GlobalExceptionHandler {
         
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .code("INVALID_ARGUMENT")
-                .message("Parametro invalido en la solicitud")
+                .message(ex.getMessage())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .path(request.getRequestURI())
+                .build();
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    /**
+     * Maneja errores de estado ilegal
+     * 
+     * Cuando: Una operación no es válida en el estado actual
+     * Retorna: 400 BAD_REQUEST
+     * 
+     * Ejemplos:
+     * - Intentar confirmar un asiento no reservado
+     * - Intentar reservar un asiento ya ocupado
+     * - Reserva de asiento expirada
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalState(
+            IllegalStateException ex,
+            HttpServletRequest request) {
+        
+        log.warn("Estado ilegal en {}: {}", request.getRequestURI(), ex.getMessage());
+        
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .code("INVALID_STATE")
+                .message(ex.getMessage())
                 .status(HttpStatus.BAD_REQUEST.value())
                 .path(request.getRequestURI())
                 .build();

@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -20,4 +21,8 @@ public class TokenValidationDTO {
     private String username;
     private List<String> roles;
     private String mensaje;
+    
+    // ⏰ Información de expiración
+    private Long minutosRestantes;
+    private Date fechaExpiracion;
 }
