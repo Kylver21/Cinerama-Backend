@@ -1,0 +1,30 @@
+# Archivos de IDE
+.idea/
+*.iml
+.vscode/
+*.code-workspace
+
+# Archivos de compilación local
+target/
+*.class
+*.jar
+*.war
+
+# Logs
+*.log
+logs/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentación (no necesaria en el contenedor)
+*.md
+docs/
+
+# Tests (ya los saltamos en el build)
+src/test/
