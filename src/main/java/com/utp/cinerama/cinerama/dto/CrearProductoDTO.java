@@ -36,4 +36,7 @@ public class CrearProductoDTO {
 
     @Builder.Default
     private Boolean activo = true;
+
+    @Size(max = 500, message = "La URL de imagen no puede exceder 500 caracteres")
+    private String imagenUrl;
 }

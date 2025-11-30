@@ -47,4 +47,8 @@ public class Producto {
     @NotNull(message = "El estado activo es obligatorio")
     @Column(nullable = false)
     private Boolean activo;
+
+    @Size(max = 500, message = "La URL de imagen no puede exceder 500 caracteres")
+    @Column(name = "imagen_url", length = 500)
+    private String imagenUrl;
 }
