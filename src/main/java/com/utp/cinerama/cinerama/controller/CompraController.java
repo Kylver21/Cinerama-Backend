@@ -59,16 +59,23 @@ public class CompraController {
             Cliente cliente = clienteService.obtenerClientePorId(dto.getClienteId())
                     .orElseThrow(() -> new ResourceNotFoundException("Cliente", "id", dto.getClienteId()));
             
+            log.info("Cliente encontrado: {} {}", cliente.getNombre(), cliente.getApellido());
+            
             Funcion funcion = funcionService.obtenerFuncionPorId(dto.getFuncionId())
                     .orElseThrow(() -> new ResourceNotFoundException("Funcion", "id", dto.getFuncionId()));
+            
+            log.info("Función encontrada: {} - {}", funcion.getId(), funcion.getPelicula().getTitulo());
 
             // 2. Confirmar asientos reservados y crear boletos
             List<ConfirmacionCompraDTO.BoletoResumenDTO> boletosResumen = new ArrayList<>();
             BigDecimal totalBoletos = BigDecimal.ZERO;
 
             for (Long asientoId : dto.getAsientoIds()) {
+                log.info("Procesando asiento ID: {}", asientoId);
+                
                 // Confirmar el asiento (cambia de RESERVADO a OCUPADO)
                 Asiento asiento = asientoService.confirmarReserva(asientoId);
+                log.info("Asiento {} confirmado - Estado: {}", asiento.getCodigoAsiento(), asiento.getEstado());
                 
                 // Crear boleto asociado al asiento
                 Boleto boleto = new Boleto();
@@ -79,7 +86,9 @@ public class CompraController {
                 boleto.setEstado(Boleto.EstadoBoleto.PAGADO);
                 boleto.setFechaCompra(LocalDateTime.now());
                 
+                log.info("Creando boleto para asiento {}", asiento.getCodigoAsiento());
                 Boleto boletoCreado = boletoService.crearBoleto(boleto);
+                log.info("Boleto creado con ID: {}", boletoCreado.getId());
                 
                 // Agregar al resumen
                 boletosResumen.add(ConfirmacionCompraDTO.BoletoResumenDTO.builder()

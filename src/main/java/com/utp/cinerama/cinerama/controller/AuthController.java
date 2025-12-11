@@ -253,18 +253,24 @@ public class AuthController {
             String token = authHeader.substring(7); // Remover "Bearer "
             boolean valido = jwtUtil.validateToken(token);
 
-                        if (valido) {
-                                String username = jwtUtil.extractUsername(token);
-                                String rol = jwtUtil.extractRol(token);
-                                List<String> roles = (rol != null && !rol.isEmpty())
-                                                ? java.util.List.of(rol)
-                                                : java.util.List.of();
+            if (valido) {
+                String username = jwtUtil.extractUsername(token);
+                String rol = jwtUtil.extractRol(token);
+                List<String> roles = (rol != null && !rol.isEmpty())
+                        ? java.util.List.of(rol)
+                        : java.util.List.of();
+
+                // ⏰ Información de expiración
+                long minutosRestantes = jwtUtil.getTokenRemainingMinutes(token);
+                java.util.Date fechaExpiracion = jwtUtil.getExpirationDate(token);
 
                 return ResponseEntity.ok(TokenValidationDTO.builder()
                         .valido(true)
                         .username(username)
                         .roles(roles)
                         .mensaje("Token valido")
+                        .minutosRestantes(minutosRestantes)
+                        .fechaExpiracion(fechaExpiracion)
                         .build());
             } else {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

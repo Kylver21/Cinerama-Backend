@@ -119,12 +119,12 @@ public class Asiento {
                LocalDateTime.now().isAfter(fechaExpiracionReserva);
     }
 
-    // Reservar asiento temporalmente (5 minutos)
+    // Reservar asiento temporalmente (15 minutos para pruebas)
     public void reservarTemporal(Long clienteId) {
         this.estado = EstadoAsiento.RESERVADO;
         this.reservadoPor = clienteId;
         this.fechaReserva = LocalDateTime.now();
-        this.fechaExpiracionReserva = LocalDateTime.now().plusMinutes(5);
+        this.fechaExpiracionReserva = LocalDateTime.now().plusMinutes(15);
     }
 
     // Confirmar reserva (al pagar)

@@ -30,4 +30,6 @@ public class ActualizarProductoDTO {
     private Integer stock;
 
     private Boolean activo;
+
+    private String imagenUrl;
 }

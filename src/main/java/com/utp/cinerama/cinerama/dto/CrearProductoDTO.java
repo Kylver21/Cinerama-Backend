@@ -36,4 +36,6 @@ public class CrearProductoDTO {
 
     @Builder.Default
     private Boolean activo = true;
+
+    private String imagenUrl;
 }

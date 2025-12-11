@@ -47,4 +47,7 @@ public class Producto {
     @NotNull(message = "El estado activo es obligatorio")
     @Column(nullable = false)
     private Boolean activo;
+
+    @Column(name = "imagen_url")
+    private String imagenUrl;
 }
