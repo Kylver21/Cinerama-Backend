@@ -144,6 +144,49 @@ cors.allowed-origins=http://localhost:4200
 
 ---
 
+## ☁️ Deploy (Render + Railway + Vercel)
+
+### 1) Backend en Render
+
+Configura estas variables de entorno en Render (Settings → Environment):
+
+- `PORT`: (Render lo define normalmente, no necesitas tocarlo)
+- `DATABASE_URL`: tu JDBC URL (ejemplo: `jdbc:mysql://HOST:PORT/DBNAME`)
+- `DATABASE_USERNAME`: usuario MySQL
+- `DATABASE_PASSWORD`: password MySQL
+- `JWT_SECRET`: clave secreta (larga, aleatoria)
+- `JWT_EXPIRATION`: (opcional) milisegundos, ej. `86400000`
+- `TMDB_API_KEY`: API key de TMDb
+- `CORS_ORIGINS`: (opcional) orígenes exactos separados por coma
+- `CORS_ORIGIN_PATTERNS`: (recomendado para Vercel) patrones separados por coma
+  - Ejemplo seguro y típico: `https://cinerama-frontend.vercel.app,https://*.vercel.app`
+
+Notas:
+- Si usas `CORS_ORIGIN_PATTERNS`, puedes dejar `CORS_ORIGINS` tal cual.
+- Con credenciales habilitadas, evita usar `*` como origen.
+
+### 2) Base de datos en Railway (MySQL)
+
+En Railway copia los datos de conexión (host, port, database, user, password) y construye:
+
+- `DATABASE_URL` → `jdbc:mysql://<host>:<port>/<database>`
+- `DATABASE_USERNAME` → `<user>`
+- `DATABASE_PASSWORD` → `<password>`
+
+### 3) Frontend en Vercel (Angular)
+
+En Vercel configura una variable de entorno con la URL pública del backend de Render, por ejemplo:
+
+- `VITE_API_URL` / `API_URL` / `NG_APP_API_URL` (según tu frontend)
+
+Y apúntala a:
+
+- `https://<tu-servicio-backend>.onrender.com`
+
+Importante: tu Angular debe consumir la API usando esa variable (por ejemplo en `environment.prod.ts`).
+
+---
+
 ## 📡 API Endpoints
 
 ### 🔓 Públicos (Sin Token)

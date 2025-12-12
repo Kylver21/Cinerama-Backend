@@ -1,5 +1,6 @@
 package com.utp.cinerama.cinerama.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,6 +23,7 @@ public class Cliente {
     // ⭐ NUEVO: Relación con Usuario para autenticación
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", unique = true)
+    @JsonIgnore
     private Usuario usuario;
 
     @Column(nullable = false)

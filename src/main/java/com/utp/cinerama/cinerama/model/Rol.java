@@ -1,5 +1,6 @@
 package com.utp.cinerama.cinerama.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -41,6 +42,7 @@ public class Rol {
     // Relacion con Usuarios (muchos a muchos - lado inverso)
     @ManyToMany(mappedBy = "roles")
     @Builder.Default
+    @JsonIgnore
     private Set<Usuario> usuarios = new HashSet<>();
 
     @PrePersist

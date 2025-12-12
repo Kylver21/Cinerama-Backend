@@ -15,6 +15,12 @@ public interface BoletoRepository extends JpaRepository<Boleto, Long> {
     @Query("SELECT b FROM Boleto b WHERE b.cliente.id = :clienteId")
     List<Boleto> findByClienteId(@Param("clienteId") Long clienteId);
 
+        @Query("SELECT b FROM Boleto b WHERE b.cliente.id = :clienteId AND b.estado IN :estados")
+        List<Boleto> findByClienteIdAndEstadoIn(
+            @Param("clienteId") Long clienteId,
+            @Param("estados") List<Boleto.EstadoBoleto> estados
+        );
+
     @Query("SELECT b FROM Boleto b WHERE b.funcion.id = :funcionId")
     List<Boleto> findByFuncionId(@Param("funcionId") Long funcionId);
 

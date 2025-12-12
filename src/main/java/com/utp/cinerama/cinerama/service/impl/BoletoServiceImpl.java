@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Arrays;
 
 @Service
 public class BoletoServiceImpl implements BoletoService {
@@ -51,7 +52,11 @@ public class BoletoServiceImpl implements BoletoService {
 
     @Override
     public List<Boleto> buscarPorCliente(Long clienteId) {
-        return boletoRepository.findByClienteId(clienteId);
+        // Historial de compras: solo boletos efectivamente comprados
+        return boletoRepository.findByClienteIdAndEstadoIn(
+                clienteId,
+                Arrays.asList(Boleto.EstadoBoleto.PAGADO, Boleto.EstadoBoleto.USADO)
+        );
     }
 
     @Override

@@ -41,6 +41,10 @@ public class SecurityConfig {
     @Value("${cors.allowed-origins}")
     private String[] allowedOrigins;
 
+    // Permite patrones como https://*.vercel.app (recomendado para Vercel previews)
+    @Value("${cors.allowed-origin-patterns:}")
+    private String[] allowedOriginPatterns;
+
     @Value("${cors.allowed-methods}")
     private String[] allowedMethods;
 
@@ -66,6 +70,8 @@ public class SecurityConfig {
 
                 // Configurar autorización de requests
                 .authorizeHttpRequests(auth -> auth
+                        // Preflight CORS
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // ========== RUTAS PÚBLICAS (sin autenticación) ==========
                         
                         // Autenticación
@@ -156,12 +162,21 @@ public class SecurityConfig {
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        log.info("Configurando CORS con origenes permitidos: {}", Arrays.toString(allowedOrigins));
+        if (allowedOriginPatterns != null && allowedOriginPatterns.length > 0 && !allowedOriginPatterns[0].isBlank()) {
+            log.info("Configurando CORS con patrones permitidos: {}", Arrays.toString(allowedOriginPatterns));
+        } else {
+            log.info("Configurando CORS con origenes permitidos: {}", Arrays.toString(allowedOrigins));
+        }
         
         CorsConfiguration configuration = new CorsConfiguration();
         
         // Origenes permitidos (desde properties)
-        configuration.setAllowedOrigins(Arrays.asList(allowedOrigins));
+        // Origenes/patrones permitidos (desde properties)
+        if (allowedOriginPatterns != null && allowedOriginPatterns.length > 0 && !allowedOriginPatterns[0].isBlank()) {
+            configuration.setAllowedOriginPatterns(Arrays.asList(allowedOriginPatterns));
+        } else {
+            configuration.setAllowedOrigins(Arrays.asList(allowedOrigins));
+        }
         
         // Métodos HTTP permitidos (desde properties)
         configuration.setAllowedMethods(Arrays.asList(allowedMethods));

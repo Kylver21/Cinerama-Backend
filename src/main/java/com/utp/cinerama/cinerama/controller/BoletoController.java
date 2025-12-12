@@ -7,6 +7,7 @@ import com.utp.cinerama.cinerama.service.BoletoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -75,6 +76,7 @@ public class BoletoController {
     }
 
     @GetMapping("/cliente/{clienteId}")
+    @PreAuthorize("@clienteSecurity.canAccessCliente(#clienteId, authentication)")
     public ResponseEntity<ApiResponse<List<Boleto>>> buscarPorCliente(@PathVariable Long clienteId) {
         log.info("Buscando boletos del cliente ID: {}", clienteId);
         List<Boleto> boletos = boletoService.buscarPorCliente(clienteId);

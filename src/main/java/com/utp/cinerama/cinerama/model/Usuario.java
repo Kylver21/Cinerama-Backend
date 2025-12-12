@@ -1,5 +1,6 @@
 package com.utp.cinerama.cinerama.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
@@ -64,6 +65,7 @@ public class Usuario implements UserDetails {
 
     // Relación con Cliente (uno a uno)
     @OneToOne(mappedBy = "usuario", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private Cliente cliente;
 
     // Relación con Roles (muchos a muchos)
