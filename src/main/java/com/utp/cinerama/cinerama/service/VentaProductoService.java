@@ -10,4 +10,9 @@ public interface VentaProductoService {
     Optional<VentaProducto> obtenerVentaPorId(Long id);
     VentaProducto crearVenta(VentaProducto ventaProducto);
     VentaProducto completarVenta(Long id);
+
+    /**
+     * Historial de compras de productos (solo completadas)
+     */
+    List<VentaProducto> buscarComprasPorCliente(Long clienteId);
 }

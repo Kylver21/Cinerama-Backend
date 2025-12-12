@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,6 +31,14 @@ public class VentaProductoController {
         log.info("Obteniendo todas las ventas de productos");
         List<VentaProducto> ventas = ventaProductoService.obtenerTodasLasVentas();
         return ResponseEntity.ok(ApiResponse.success("Ventas obtenidas exitosamente", ventas));
+    }
+
+    @GetMapping("/cliente/{clienteId}")
+    @PreAuthorize("@clienteSecurity.canAccessCliente(#clienteId, authentication)")
+    public ResponseEntity<ApiResponse<List<VentaProducto>>> obtenerComprasPorCliente(@PathVariable Long clienteId) {
+        log.info("Obteniendo compras de productos del cliente ID: {}", clienteId);
+        List<VentaProducto> compras = ventaProductoService.buscarComprasPorCliente(clienteId);
+        return ResponseEntity.ok(ApiResponse.success("Compras de productos obtenidas exitosamente", compras));
     }
 
     @GetMapping("/{id}")

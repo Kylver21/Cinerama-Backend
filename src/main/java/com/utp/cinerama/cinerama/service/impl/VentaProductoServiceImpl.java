@@ -5,6 +5,7 @@ import com.utp.cinerama.cinerama.repository.VentaProductoRepository;
 import com.utp.cinerama.cinerama.service.VentaProductoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -38,5 +39,11 @@ public class VentaProductoServiceImpl implements VentaProductoService {
                     return ventaProductoRepository.save(venta);
                 })
                 .orElseThrow(() -> new RuntimeException("Venta no encontrada"));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<VentaProducto> buscarComprasPorCliente(Long clienteId) {
+        return ventaProductoRepository.findComprasCompletadasByClienteId(clienteId);
     }
 }

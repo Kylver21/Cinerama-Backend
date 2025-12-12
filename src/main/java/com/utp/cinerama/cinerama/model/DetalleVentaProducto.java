@@ -1,5 +1,6 @@
 package com.utp.cinerama.cinerama.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -9,7 +10,7 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString
+@ToString(exclude = {"ventaProducto", "producto"})
 public class DetalleVentaProducto {
 
     @Id
@@ -18,6 +19,7 @@ public class DetalleVentaProducto {
 
     @ManyToOne
     @JoinColumn(name = "venta_producto_id", nullable = false)
+    @JsonIgnore
     private VentaProducto ventaProducto;
 
     @ManyToOne
